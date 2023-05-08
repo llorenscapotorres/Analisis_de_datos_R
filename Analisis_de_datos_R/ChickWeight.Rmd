@@ -1,0 +1,402 @@
+---
+title: "ChickWeigth"
+author: "Llorenç Capó Torres"
+subtitle: "Análisis de Datos GMAT 22-23"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    df_print: kable
+---
+
+**INSTRUCCIONES**: 
+
+* *Debéis entregar el fichero .Rmd y el .pdf o .html.*
+
+* *Todas las preguntas se han de responder por medio de una frase bien construida.* 
+
+**(1) [1 punto] Sean $\bf{X}_1,\bf{X}_2,\bf{X}_3,\bf{X}_4$ vectores aleatorios independientes que siguen una ley $N_2(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, donde:**
+$$\boldsymbol{\mu}=(1,2)^t \;\; \mbox{y} \;\; \boldsymbol{\Sigma}=\left( \begin{array} {cc} 1 & 0.1 \\ 0.1 & 2 \end{array} \right)$$
+**a) [ punto] Encontrad la ley del vector aleatorio**
+$$\bf{Y}=\frac{1}{4}\bf{X}_1-\frac{1}{4}\bf{X}_2+ \frac{1}{4}\bf{X}_3-\frac{1}{4}\bf{X}_4$$
+
+Primero definiremos los vectores aleatorios como: $X_1 = (X_{11},X_{12}), X_2 = (X_{21},X_{22}), X_3 = (X_{31},X_{32}), X_4 = (X_{41},X_{42})$.
+
+Fijémonos que:
+
+$$Y = \dfrac{1}{4}(X_{11},X_{12})-\dfrac{1}{4}(X_{21},X_{22})+\dfrac{1}{4}(X_{31},X_{32})-\dfrac{1}{4}(X_{41},X_{42}) =$$ $$ = (\dfrac{1}{4}(X_{11}-X_{21}+X_{31}-X_{41}),\dfrac{1}{4}(X_{12}-X_{22}+X_{32}-X_{42})) = (Y_1,Y_2)$$
+
+Definimos también: $\overline{X_1} = (X_{11},X_{21},X_{31},X_{41})$, y $\overline{X_2} = (X_{12},X_{22},X_{32},X_{42})$.
+
+Entonces, \[\begin{cases}
+\ Y_1 = b_1^t \cdot \overline{X_1}, \text{con} \ b_1 = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4})^t, \\
+\ Y_2 = b_2^t \cdot \overline{X_2}, \text{con} \ b_2 = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4})^t.
+\end{cases}
+\]
+
+Como $\overline{X_1} \sim N_4(\overline{\mu}, \overline{\Sigma})$, la v.a $Y_1$ sigue una ley normal.
+
+Además, como $X_k \sim N_2(\mu, \Sigma), k = 1,...,4$, entonces $E(X_{k1}) = 1$, y por tanto, $E(\overline{X_1}) = (1,1,1,1)^t$.
+Y, por el mismo motivo, $Var(X_{k1}) = 1, \forall k = 1,...,k$. Falta calcular la $Cov(X_{i1},X_{j1}), \forall i,j = 1,...,4$. Y así poder tener $Var(\overline{X_1})$.
+
+Pero, como $X_{1},X_{2},X_{3},X_{4}$ son vectores aleatorios independientes, entonces si $i \neq j$ la $Cov(X_{ir},X_{jr}) = 0, \forall j = 1,2$.
+
+Y así, $Var(\overline{X_1}) = Id_4$.
+
+Vamos a calcular ahora la $E(Y_1)$, y $Var(Y_1)$:
+
+\cdot $E(Y_1) = E(b_1^t \cdot \overline{X_1}) = b_1^t \cdot E(\overline{X_1}) = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4}) \cdot (1,1,1,1)^t = 0$
+
+\cdot $Var(Y_1) = Var(b_1^t \cdot \overline{X_1}) = b_1^t \cdot Var(\overline{X_1}) \cdot b_1 = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4}) \cdot Id_4 \cdot (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4})^t = \dfrac{1}{4}$
+
+Entonces, $Y_1 \sim N \left(0, \dfrac{1}{4}\right)$.
+
+Para calcular $Y_2$ lo hacemos de la misma forma, pero teniendo en cuenta $E(X_{k2})=2, \forall k = 1,...,4$, y que $Var(X_{k2}) = 2$. Entonces, $E(\overline{X_2}) = (2,2,2,2)^t$, y $Var(\overline{X_2}) = 2Id_4$.
+
+Vamos a calcular ahora la $E(Y_2)$, y $Var(Y_2)$:
+
+\cdot $E(Y_2) = E(b_2^t \cdot \overline{X_2}) = b_2^t \cdot E(\overline{X_2}) = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4}) \cdot (2,2,2,2)^t = 0$.
+
+\cdot $Var(Y_2) = Var(b_2^t \cdot \overline{X_2}) = b_2^t \cdot Var(\overline{X_2}) \cdot b_2 = (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4}) \cdot 2Id_4 \cdot (\dfrac{1}{4},-\dfrac{1}{4},\dfrac{1}{4},-\dfrac{1}{4})^t = \dfrac{1}{2}$.
+
+Entonces, $Y_2 \sim N \left(0, \dfrac{1}{2}\right)$.
+
+Nos falta calcular la $Cov(Y_1, Y_2)$. Vamos a hacerlo:
+
+$$Cov(Y_1,Y_2) = E(Y_1 \cdot Y_2) - E(Y_1) \cdot E(Y_2) = E(Y_1 \cdot Y_2) = E\left(\dfrac{1}{4}(X_{11}-X_{21}+X_{31}-X_{41}) \cdot \dfrac{1}{4} (X_{12}-X_{22}+X_{32}-X_{42})\right) =$$ $$ = \dfrac{1}{16}[E(X_{11}X_{12})-E(X_{11}X_{22})+E(X_{11}X_{32})-E(X_{11}X_{42})-E(X_{21}X_{12})+E(X_{21}X_{22})-E(X_{21}X_{32})+E(X_{21}X_{42})+E(X_{31}X_{12})-E(X_{31}X_{22}) + $$ $$ + E(X_{31}X_{32})-E(X_{31}X_{42})-E(X_{41}X_{12})+E(X_{41}X_{22})-E(X_{41}X_{32})+E(X_{41}X_{42})] = $$ $$ = \dfrac{1}{16}[E(X_{11}X_{12})-E(X_{11})E(X_{22})+E(X_{11})E(X_{32})-E(X_{11})E(X_{42})-E(X_{21})E(X_{12})+E(X_{21}X_{22})-E(X_{21})E(X_{32})+E(X_{21})E(X_{42}) + $$ $$ + E(X_{31})E(X_{12})-E(X_{31})E(X_{22}) + E(X_{31}X_{32})-E(X_{31})E(X_{42})-E(X_{41})E(X_{12})+E(X_{41})E(X_{22})-E(X_{41})E(X_{32})+E(X_{41}X_{42})] = $$ $$ = \dfrac{1}{16}[E(X_{11}X_{12})+E(X_{21}X_{22})+E(X_{31}X_{32})+E(X_{41}X_{42}) - 8] = $$ $$ = \dfrac{1}{16}[Cov(X_{11},X_{12}) + E(X_{11})E(X_{12}) + Cov(X_{21},X_{22}) + E(X_{21})E(X_{22}) + Cov(X_{31},X_{32}) + E(X_{31})E(X_{32}) + Cov(X_{41},X_{42}) + E(X_{41})E(X_{42}) - 8] = $$ $$ = \dfrac{1}{16}[8.4-8] = \dfrac{1}{40}$$.
+
+Por tanto, $Y \sim N_2 \left(\mu_y , \Sigma_y \right)$, con $\mu_y = (0,0)^t$, y \[
+\Sigma_y = \begin{equation}
+\begin{pmatrix}
+\dfrac{1}{4} & \dfrac{1}{40} \\
+\dfrac{1}{40} & \dfrac{1}{2}
+\end{pmatrix}
+\end{equation}
+\]
+
+**b) [1 punto] Escribid la función de densidad del vector $\bf{Y}$**
+
+Por el apartado anterior sabemos que $Y \sim N_2 \left(\mu_y, \Sigma_y \right)$. La fórmula de una normal bivariante la tenemos en los apuntes, entonces solo nos falta calcular la correlación entre $Y_1$ y $Y_2$.
+
+\cdot $\rho_y = \dfrac{Cov(Y_{1},Y_{2})}{\sqrt{\sigma_{1_y}² \cdot \sigma_{2_y}²}} = \dfrac{\dfrac{1}{40}}{\dfrac{1}{2} \cdot \dfrac{1}{\sqrt{2}}} = \dfrac{2 \sqrt{2}}{40} = \dfrac{\sqrt{2}}{20}$.
+
+Así pues,
+
+\cdot $f(y_1,y_2) = \dfrac{1}{2\pi \dfrac{1}{2} \dfrac{1}{\sqrt{2}} \sqrt{1-\dfrac{1}{200}}} \cdot exp\{-\dfrac{1}{2}-Q(y_1,y_2) \}$, donde 
+
+\cdot $Q(y_1,y_2) = \dfrac{1}{1-\dfrac{1}{200}} \cdot \left(\dfrac{(y_1-0)²}{\dfrac{1}{4}}-\dfrac{\sqrt{2}}{10} \cdot \dfrac{(y_1-0)(y_2-0)}{\dfrac{\sqrt{2}}{4}} + \dfrac{(y_2-0)²}{\dfrac{1}{2}} \right) = \dfrac{200}{199} \cdot \left(4y_1² - \dfrac{2}{5}y_1y_2 + 2y_2² \right)$.
+
+Finalmente nos queda que la función de densidad es:
+
+$$f(y_1,y_2) = \dfrac{\sqrt{398}}{\pi \sqrt{200}} \cdot exp\{-\dfrac{1}{2}-\dfrac{200}{199}(4y_1²-\dfrac{2}{5}y_1y_2+2y_2²) \}$$
+
+**c) [1 punto] Calcular la correlación $\boldsymbol{\rho}$ correspondiente a la matriz de covarianzas $\boldsymbol{\Sigma}$. Describid los cambios que se producen en la densidad de $\bf{Y}$ al variar el valor de $\boldsymbol{\rho}$**\
+
+Del enunciado deducimos que $\sigma_1 = 1, \sigma_2 = \sqrt{2}$. Entonces, $\rho = \dfrac{0.1}{1 \cdot \sqrt{2}} = \dfrac{1}{10 \sqrt{2}}$.
+
+Pasemos ahora con los cambios que experimenta a función de densidad $f(y_1,y_2)$ al variar el valor de $\rho$ entre -1 y 1. Si observamos el vector de medias y la matriz de covarianzas, vemos que la densidad en función del parámetro $\rho$ adopta la siguiente forma:
+
+$$f(y_1,y_2)=\dfrac{\sqrt{2}}{\pi \sqrt{1-\rho^2}}\cdot exp\{-\dfrac{1}{2}-\dfrac{1}{1-\rho^2}(4y_1^2-4\rho\sqrt{2}y_1 y_2+2y_2^2) \}$$
+Nuestro objetivo, es representar dicha expresión en $\mathbb{R}^3$ para distintos valores de $\rho$ y así tener una imagen cabal de los cambios que sufre la densidad al variar la correlación. De esta manera, examinaremos la forma de $f(y_1,y_2)$ para los valores de $\rho$: -0.9, -0.5, 0, 0.5 y 0.9.
+
+En primer lugar, declaramos la función en R:
+```{r message=FALSE, warning=FALSE}
+library(rgl)
+library(tidyverse)
+library(tidyr)
+
+f=function(x,y,r){
+  return(
+    (sqrt(2)/(pi*sqrt(1-(r)^2)))*exp(-1/2-(1/(1-(r)^2))*(4*x^2-4*r*sqrt(2)*x*y+2*y^2))
+  )
+}
+```
+
+A continuación, realizamos una partición de valores para las variables $y_1$ e $y_2$ para poder representar $f(y_1,y_2)$. La idea central, es poder obtener, para distintos valores de $\rho$, la imagen para la densidad en un mismo punto $(y_1,y_2)$ del plano y representar las gráficas por colores.
+
+Prosigamos
+```{r message=FALSE, warning=FALSE}
+#Declaramos el rango de las variables y los valores de ro para los cuales examinaremos el comportamiento de la función de densidad
+
+y1=seq(-1,1,length=200)
+y2=y1
+ro=c(-0.9,-0.5,0,0.5,0.9)
+
+#Ahora vamos a hacer el producto cartesiano de los tres conjuntos anteriores para tener, en un mismo punto del plano, las distintas imagenes de la densidad para distintos valores de la correlación.
+
+datos=crossing(y1,y2,ro)%>%
+  mutate(Densidad=f(y1,y2,ro))
+
+#Por comodidad, declaramos la ro como factor para las gráficas.
+
+datos$ro=as.factor(datos$ro)
+
+#Como tenemos cuatro posibles valores de correlación, usaremos 4 colores para cada gráfica y, además, en la tabla anterior asignaremos un color para cada valor de correlación en una nueva columna.
+
+colores=c("red","blue","black","green","orange")
+datos$color=colores[as.numeric(datos$ro)]
+
+```
+
+Llegados a este punto, ya estamos listos para visualizar las gráficas, tal que
+
+### $\rho=-0.9$
+```{r message=FALSE, warning=FALSE}
+options(rgl.useNULL = TRUE)#Para evitar ventanas externas
+datos%>%
+  filter(ro==-0.9)%>%
+  with(plot3d(y1,y2,Densidad,col = color))
+rglwidget()#Muestra el resultado en la misma línea
+```
+
+### $\rho=-0.5$
+
+```{r message=FALSE, warning=FALSE}
+datos%>%
+  filter(ro==-0.5)%>%
+  with(plot3d(y1,y2,Densidad,col = color))
+rglwidget()
+```
+
+
+### $\rho=0$
+
+```{r message=FALSE, warning=FALSE}
+datos%>%
+  filter(ro==0)%>%
+  with(plot3d(y1,y2,Densidad,col = color))
+rglwidget()
+```
+
+### $\rho=0.5$
+
+```{r message=FALSE, warning=FALSE}
+datos%>%
+  filter(ro==0.5)%>%
+  with(plot3d(y1,y2,Densidad,col = color))
+rglwidget()
+```
+
+
+### $\rho=0.9$
+
+```{r message=FALSE, warning=FALSE}
+datos%>%
+  filter(ro==0.9)%>%
+  with(plot3d(y1,y2,Densidad,col = color))
+rglwidget()
+```
+
+
+
+**(3) [4 puntos] Realizad un análisis exploratorio del conjunto de datos `ChickWeight` que está disponible en R**
+
+Al estar haciendo un análisis exploratorio, nuestro objetivo será resumir, representar y explicar los datos concretos de los que disponemos. Para ello, empecemos cargando el data frame `ChickWeight` y tratemos de entender la información que contiene.
+
+```{r}
+data_cw = ChickWeight
+str(data_cw)
+```
+
+En primer lugar, visualizamos el resultado de la función "str". Podemos observar que hay 4 variables (columnas) y 578 observaciones (filas), éstas son:
+
+    1. Weight: es cuantitativo y está tomada en gramos. Por el nombre y las unidades deducimos que contiene pesos. Ya averiguaremos más tarde a qué hacen referencia.
+    
+    2. Time: también es cuantitativo y su unidad de medida son días.
+    
+    3. Chick: cuya traducción es "polluelo" es una variable cualitativa (es de tipo factor ordenado). Observamos que tenemos 50 niveles. Podemos pensar que estamos tratando con un conjunto de 50 polluelos.
+    
+    4. Diet: es otra variable cualitativa ya que es de tipo factor y tiene 4 niveles. Deducimos por el nombre y los 4 tipos distintos de niveles que tenemos 4 dietas distintas.
+
+Para obtener más información, empecemos representando el polluelo con el indicador número 1 a modo de ejemplo.
+
+```{r}
+polluelo_n1 = data_cw[data_cw$Chick == "1",]
+polluelo_n1
+```
+
+Observemos que a éste se le ha asignado una única dieta (la 1) y se le ha ido tomando su peso cada 2 días desde el día 0 al 20 y también se ha apuntado el día 21.
+
+A partir de los datos de este polluelo, la primera pregunta que nos planteamos es si cada polluelo tiene asignada una única dieta. Veámoslo con el gráfico siguiente.
+
+```{r}
+barplot(table(data_cw$Diet,data_cw$Chick), legend.text = TRUE, col=c("lightblue","pink", "yellow", "lightgreen"),xlab="Indicador del polluelo", ylab="Frecuencia observada", main="Diagrama de barras bidimensional de
+las frecuencias absolutas de la variable \"Diet\" con respecto a \"Chick\"")
+```
+
+Vemos que efectivamente, cada polluelo sigue un único tipo de dieta. De hecho, vemos también que "Chick" está ordenada según las dietas que siguen los polluelos.
+
+Con la siguiente instrucción fijémonos que la variable "Time" toma los valores de dos en dos desde el 0 al 20 y añadiendo el día 21.
+
+```{r}
+levels(as.factor(data_cw$Time))
+```
+
+Esto nos lleva a preguntarnos, ¿todos los polluelos terminaron el experimento? Como veremos a continuación la respuesta es NO.
+
+Sabemos que la variable "Time" es como máximo 21, por tanto, miremos cuántos polluelos tienen anotados los datos el día 21.
+
+```{r}
+tiempo21 <- data_cw[which(data_cw$Time == 21),3] #polluelos que acabaron el experimento
+length(tiempo21)
+```
+
+Recordemos que con "str" habíamos visto que teníamos 50 polluelos y ahora nos damos cuenta de que tenemos datos del último día (el día 21) de tan solo 45. En otras palabras, hay 5 polluelos que no llegaron al último día. Miremos cuáles son.
+
+```{r}
+tiempo0 <- data_cw[which(data_cw$Time == 0),3]
+chick_NA <- setdiff(tiempo0,tiempo21) #polluelos que no acabaron el experimento
+chick_NA
+```
+
+Veamos también qué dietas seguían estos polluelos que no terminaron.
+
+```{r}
+as.numeric(data_cw[data_cw$Chick == "8" ,4])[1]
+as.numeric(data_cw[data_cw$Chick == "15" ,4])[1]
+as.numeric(data_cw[data_cw$Chick == "16" ,4])[1]
+as.numeric(data_cw[data_cw$Chick == "18" ,4])[1]
+as.numeric(data_cw[data_cw$Chick == "44" ,4])[1]
+```
+
+Observamos que 4 polluelos seguían la dieta número 1 y el restante la 4.
+
+Céntremonos ahora en la variable "weight". Deducimos que es de tipo discreto con el siguiente código.
+
+```{r}
+# Recordemos que la función ceiling(x) devuelve el primer entero mayor a x, en caso de que x sea entero devolverá el propio x
+# Definimos la siguiente función
+hay_decimal <- function(x){
+  n <- length(x)
+  for (i in (1:n)){
+  if (x[i] !=  ceiling(x[i])){
+    print("Hay un decimal")
+    break
+  }
+}
+print("Finalizado")
+}
+# Esta función imprimirá por pantalla "Finalizado" si no ha encontrado ningún decimal (para saber que ha terminado la búsqueda), es decir, si los datos son discretos. Por el contrario, "Hay un decimal" en caso de que los datos sean continuos.
+```
+
+```{r}
+hay_decimal(data_cw$weight)
+```
+
+Con toda esta información, deducimos que el data frame recoge información sobre un experimento. Éste trata de recoger datos de un conjunto de polluelos dividido en 4 grupos. A cada grupo se le ha alimentado con una dieta distinta y se ha ido evaluando el peso de todos los polluelos a lo largo de un intervalo de tiempo como hemos visto previamente. Las variables por tanto indican:
+
+    1. Weight: el peso del polluelo despúes de haber pasado un determinado número de días de experimento.
+    
+    2. Time: el número de días que lleva un determinado polluelo siguiendo una cierta dieta.
+    
+    3. Chick: una forma de definir sobre qué polluelo estamos trabajando. Es básicamente un indicador del polluelo. Sabemos además que han participado 50 en el experimento.
+    
+    4. Diet: dieta que sigue el polluelo. Hay cuatro tipos de dietas diferentes. 
+
+Una vez recapitulada toda esta información nos plantemos un objetivo que podríamos tener en mente dados estos datos. Nos podría interesar saber qué dieta es la "mejor". Por "mejor" entenderemos la dieta que ha aumentado más el peso de los polluelos que seguían esa dieta determinada ya que el interés de un granjero puede ser que sus polluelos aumenten de peso.
+
+Tengamos una primera idea de si los polluelos aumentan o no de peso representando la evolución del peso a lo largo del tiempo para cada polluelo. Distinguiremos por colores las dietas.
+
+```{r}
+# Ahora todos los polluelos juntos
+
+# Consideramos solo los polluelos de la dieta 1
+data_diet1 <- data_cw[which(data_cw$Diet == 1),]
+# chick1_diet1: es el polluelo con el que que empezamos el plot
+chick1_diet1 = data_diet1[which(data_diet1$Chick == levels(data_diet1$Chick)[1]),]
+plot(chick1_diet1$Time,chick1_diet1$weight,type = "l", xlim=c(0,21),ylim=c(0,max(data_cw$weight)), col=1, main="Evolución de \"weight\" con respecto a \"Time\" de cada polluelo distinguiéndolos por dieta", xlab="Tiempo",ylab="Peso", cex.main=0.85)
+
+# Una vez tenemos el gráfico base, añadimos sobre él todos los demás polluelos
+for (i in (2:length(levels(data_diet1$Chick)))){
+  chick <- data_diet1[which(data_diet1$Chick == levels(data_diet1$Chick)[i]),]
+  lines(chick$Time,chick$weight, lwd=1, col=1)
+}
+#legend("topleft", legend=levels(data_diet1$Chick), col=c(1:length(levels(data_diet1$Chick))), lty=rep("solid",length(levels(data_diet1$Chick))),  adj = c(0, 0.6), cex=0.75)
+
+# Consideramos solo los polluelos de la dieta 2
+data_diet2 <- data_cw[which(data_cw$Diet == 2),]
+
+# Una vez tenemos el gráfico base, añadimos sobre él todos los polluelos de la dieta 2
+for (i in (1:length(levels(data_diet2$Chick)))){
+  chick <- data_diet2[which(data_diet2$Chick == levels(data_diet2$Chick)[i]),]
+  lines(chick$Time,chick$weight, lwd=1, col=2)
+}
+
+# Consideramos solo los polluelos de la dieta 3
+data_diet3 <- data_cw[which(data_cw$Diet == 3),]
+
+# Una vez tenemos el gráfico base, añadimos sobre él todos los polluelos de la dieta 2
+for (i in (1:length(levels(data_diet3$Chick)))){
+  chick <- data_diet3[which(data_diet3$Chick == levels(data_diet3$Chick)[i]),]
+  lines(chick$Time,chick$weight, lwd=1, col=3)
+}
+
+# Consideramos solo los polluelos de la dieta 4
+data_diet4 <- data_cw[which(data_cw$Diet == 4),]
+
+# Una vez tenemos el gráfico base, añadimos sobre él todos los polluelos de la dieta 2
+for (i in (1:length(levels(data_diet4$Chick)))){
+  chick <- data_diet4[which(data_diet4$Chick == levels(data_diet4$Chick)[i]),]
+  lines(chick$Time,chick$weight, lwd=1, col=4)
+}
+
+legend("topleft", legend=(1:4), col=(1:4), lty=rep("solid",4))
+```
+
+Vemos que en en general todos los polluelos han aumentado de peso con el tiempo. Con la representación anterior también observamos que gran parte de los polluelos parten del mismo peso. Veámoslo con la siguiente tabla.
+
+```{r}
+# Consideramos todos los pesos en el tiempo 0
+tiempo0 = data_cw[which(data_cw$Time == 0),] 
+prop.table(table(tiempo0$weight))
+```
+
+Los pesos iniciales se encuentran entre 39 y 43 gramos. Este hecho hará que nos resulte más fácil hacer las comparaciones. Además, el 40% empieza el experimento con peso 41.
+
+```{r}
+by(tiempo0$weight, tiempo0$Diet, FUN=summary)
+boxplot(weight~Diet, data= tiempo0, xlab="Tipo de dieta", ylab="Peso", main="Diagrama de caja de la variable \"weight\" con respecto a \"Diet\" en el tiempo 0 de todos los polluelos", cex.main=0.8)
+```
+
+Vemos que las medianas rondan entre 40.5 y 41 y las medias entre 40.8 y 41.4. Además, en todas encontramos polluelos de 39 gramos (el mínimo). Los demás percentiles también son todos muy parecidos. Por tanto, podemos asegurar que no hay ninguna dieta que empiece el día 0 con polluelos ventajosos (con ventajosos nos referimos a que tengan considerablemente más peso que los otros).
+
+Comparemos ahora los pesos de los polluelos según la dieta y hagámonos una idea de los percentiles que siguen. Cabe aclarar que solo tomaremos los pesos finales y, por tanto, los que no terminaron no los tenemos en cuenta por el momento.
+
+```{r}
+# Consideramos la parte del data frame original que solo tiene tiempos 21
+data_cw_t21 <- data_cw[which(data_cw$Time==21),]
+
+by(data_cw_t21$weight, data_cw_t21$Diet, FUN=summary)
+boxplot(weight~Diet, data= data_cw_t21, xlab="Tipo de dieta", ylab="Peso", main="Diagrama de caja de la variable \"weight\" con respecto a \"Diet\" en el día 21", cex.main=0.95)
+```
+
+Lo primero que cabe comentar es que todos los polluelos que llegaron al final del experimento han aumentado considerablemente de peso (vemos que los valores mínimos en el tiempo 21 son mucho mayores que los valores máximos del tiempo 0).
+
+Vemos que la mediana más baja es la de la dieta 1 y que la mediana más alta es la de la dieta 3. Vemos también que el mayor peso se ha adquirido con la dieta 3 cuyo valor es 373 y también obtiene la mejor media con 270.3. El tercer cuartil que supera a todos los demás también es el de la dieta 3. El valor máximo más bajo lo encontramos en la dieta 1. 
+
+Básandonos en esta información, sospechamos que la mejor dieta es la 3. No obstante, también cabe destacar que la dieta con menos diferencia entre el máximo y el mínimo es la 4, hecho que nos indica que puede ser la más fiable ya que, además, es la dieta con el valor mínimo más alto.
+
+No obstante, recordemos que dentro de la dietas 1 y 3 tenemos valores NA. Cinco polluelos no pudieron llegar al final del experimento, hecho que hace que se distorsione la información. Podríamos pensar que se ha tenido que detener el experimento por motivos ajenos a la dieta. Sin embargo, también podríamos pensar plantearnos que ha sido debido al tipo de dieta (por ejemplo: la dieta no le sentaba bien al polluelo y se tuvo que detener, falleció a causa de la dieta, etc.). 
+
+Tratemos ahora de hacer el mismo estudio, pero añadiendo esos polluelos que no pudieron acabar el experimento. Para hacerlo, agregaremos su último peso antes de terminar de forma prematura.
+
+```{r}
+polluelo_n8 = data_cw[data_cw$Chick == "8",][10,]
+polluelo_n15 = data_cw[data_cw$Chick == "15",][8,]
+polluelo_n16 = data_cw[data_cw$Chick == "16",][7,]
+polluelo_n18 = data_cw[data_cw$Chick == "18",][2,]
+polluelo_n44 = data_cw[data_cw$Chick == "44",][10,]
+todos_polluelos = rbind(data_cw_t21, polluelo_n8, polluelo_n15, polluelo_n16, polluelo_n18, polluelo_n44)
+```
+
+Calculemos de nuevo los cuantiles con los polluelos que no acabaron el experimento. Notemos que, en este caso, no importa que estén ordenados.
+
+```{r}
+by(todos_polluelos$weight, todos_polluelos$Diet, FUN=summary)
+boxplot(weight~Diet, data= todos_polluelos, xlab="Tipo de dieta", ylab="Peso", main="Diagrama de caja de la variable \"weight\" con respecto a \"Diet\" en el tiempo final de cada polluelo", cex.main=0.85)
+```
+
+A simple vista no observamos grandes cambios ya que la que era la mejor dieta, en cuanto a mejor media y mediana, era la dieta 3 y ésta no ha sufrido cambios. Un dato resaltable es que ahora la diferencia más pequeña entre el mínimo y el máximo, aunque siga siendo de la dieta 4, ya no es tan grande comparada, sobretodo con respecto a la 3. Además, la dieta 1 ha empeorado sus resultados teniendo el valor mínimo por excelencia de 35 (un valor muy atípico). Ha habido al menos un polluelo (de entre el 8, el 15, el 16 o el 18 que son los NA de la dieta 1) que ha acabado el experimento con un peso inferior respecto al que empezó. El hecho de que tantos polluelos que siguieron esta dieta no pudieron acabar nos hace sospechar aún más de ella, aunque es cierto que es donde más muestras tenemos.
+
+En conclusión, si el objetivo principal del experimento era saber qué dieta es la mejor para que los polluelos lleguen a un mayor peso en los primeros 21 días, entonces la mejor es la 3 ya que tiene la mejor media, mediana y el máximo más alto. Además, todos los polluelos han podido llegar al día 21. No obstante, la dieta 4 también es fiable y da buenos resultados, comparada con la 1 y 2.
+

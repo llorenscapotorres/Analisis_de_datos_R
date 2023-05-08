@@ -1,0 +1,361 @@
+---
+title: "Series Temporales"
+subtitle: "Análisis de Datos GMAT 22-23"
+author: "Llorenç Capó Torres"
+output: rmdformats::readthedown
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE,comment = "")
+```
+
+# Introducción
+
+## Librerías
+
+Como siempre, dedicamos una primera sección para cargar todas aquellas librerías que nos sean de utilidad para con nuestros análisis:
+
+```{r}
+library(rmdformats)#Necesaria para poder compilar el RMD
+library(tidyverse)
+library(stringr)
+library(magrittr)
+library(kableExtra)
+library(corrplot)
+library(dygraphs)
+library(forecast)
+library(dhReg)
+options(kableExtra.auto_format=FALSE)
+```
+
+
+## Carga y limpieza de los datos
+
+El objetivo de esta práctica, es llevar a cabo un estudio del gasto por persona de los turistas que visitan la isla de **Menorca**; para ello, hemos descargado un archivo *csv* donde se registran los gastos mensuales desde octubre de 2015 hasta octubre de 2022, que serán tratados como una *serie temporal* tomando como variable aleatoria el gasto.
+
+Antes de proseguir, se menciona que, debido a ciertas dificultades computacionales en la descarga de datos, se ha modificado mínimamente el *csv* obtenido ya que, entre otros problemas, presentaba un encabezado en blanco que R te detecta como columnas sin nombre y, naturalmente, desemboca en errores; en lo que respecta al resto de problemas, se abordaran en la subsiguiente limpieza.
+
+Así pues, comencemos cargando el archivo *Datos.txt*:
+
+```{r}
+datos_sucio=read.table(file = "Datos.txt",header = T,dec = ",",encoding = "UTF-8")
+```
+
+```{r}
+datos_sucio %>% class
+```
+
+```{r}
+datos_sucio %>% head
+```
+
+Como podemos apreciar, tenemos un objeto *data frame* donde en la primera columna tenemos los momentos temporales donde se realizan las mediciones del gasto por persona y, de forma adyacente, la columna con dichos gastos.
+
+A simple vista, uno puede percatarse de varios problemas:
+
+* Todas las columnas son de tipo *character*; esto es bastante problemático si tenemos en cuenta que, lo ideal, sería convertir el gasto en una variable tipo *numeric* (no es recomendable *integer*).
+
+* El periodo no es del todo satisfactorio como esta expuesto, ya que superpone el año y el mes de la medición.
+
+* Los datos, no están dispuesto siguiendo la flecha temporal; es decir, están ordenados de forma descendente en sentido contrario al flujo del tiempo. **¿Importa esto?** Bastante, ya que la función *ts()*, que nos permitirá tomar los datos desde una fecha determinada en la que comenzamos la serie entiende, por defecto, que la primera observación corresponde a la primera fila y, por ende, necesitamos orientar los datos para trabajar cómodamente con la función.
+
+* El archivo original utiliza la coma como separador decimal y, como ya sabemos, R trabaja con el punto; por añadidura, utiliza el punto para indicar unidades de millón entre otras.
+
+Así pues, para soslayar todos estos impedimentos, vamos a programar, por comodidad, una función auxiliar que sirva para limpiar los datos:
+
+
+```{r}
+limpieza=function(tabla){
+  tabla_limpia=tabla %>% .[sort(as.numeric(rownames(.)),decreasing = T), ] %>% #Ordenamos las observaciones a nivel temporal
+    separate(Periodo,sep = "M",into = c("year","month")) %>%#Separamos la columna del periodo en dos.
+    mutate(across(.cols = -c(year,month),~sub("\\.","",.))) %>% #Eliminamos los primeros puntos de unidades de millón y demás. Fijémonos que esta instrucción solo toma el primer match para sustituir.
+    mutate(across(.cols = -c(year,month),~gsub(",",".",.))) %>%#Cambiamos la coma decimal por un punto.
+    mutate(Gasto_persona=as.numeric(Gasto_persona)) %>% #Pasamos a dato numérico el gasto.
+    as_tibble #Y pasamos a formato tibble por comodidad
+  return(tabla_limpia)
+}
+```
+
+
+Y limpiamos nuestros datos:
+
+```{r}
+datos=limpieza(datos_sucio)
+datos %>% kbl %>% kable_styling
+```
+
+Como podemos observar, ahora nuestros datos se muestran limpios de todos los errores detectados y, por ende, podemos empezar a trabajar con ellos.
+
+Antes de finalizar este apartado, resulta apropiado responder a la siguiente pregunta: **¿Son datos tidy?** Para poder responder a ello, primero debemos preguntarnos cuáles son las unidades muestrales que estamos estudiando para recolectar los datos. Aunque puede haber varias interpretaciones, en nuestra opinión, las unidades muestrales serían los años en los que estudiamos, por meses, el gasto de los turistas en Menorca; por tanto, el dataset exhibido no sería tidy ya que las unidades muestrales están repetidas. 
+
+Una posible solución para sortear este problema, sería utilizar un *pivot_wider* y entender los meses como variables de un mismo año en tanto que almacenen los gastos registrados, a saber:
+
+```{r}
+datos %>% pivot_wider(names_from = month,values_from = Gasto_persona)
+```
+
+# El Análisis de la serie
+
+
+## Apartado 0
+
+**(0) Dividid la serie temporal en dos trozos: un 80% de las primeras observaciones las usaréis para "aprender" y dejaréis el 20% restante para "predecir"**
+
+Como primer paso, vamos a realizar las particiones en *training* y *test* del conjunto de datos recolectados; ello, nos servirá para poder llevar a cabo modelos de aprendizaje mediante los cuales hacer predicciones sobre la serie temporal y, por ende, calcular nuestro error cuadrático medio. Así pues, tomamos el 80% de las primeras entradas como training y el 20% restante como test:
+
+```{r}
+training=datos %>% .[1:(nrow(.)*0.8),]
+test=setdiff(datos,training)
+```
+
+
+## Apartado I
+
+**(1) [3 puntos] Descripción de la serie temporal de aprendizaje: gráfico de la serie original, detección de la tendencia, análisis de la variabilidad y estacionalidad (en los casos que aplique). Análisis de los gráficos ACF y PACF. Descomposición de la serie de acuerdo a un modelo aditivo y/o multiplicativo según sea el caso. Por último, realizar predicciones con el modelos aditivo y/o multiplicativo que habéis seleccionado, dibujad vuestros pronósticos sobre la serie total (aprendizaje + test). Calculad el error cuadrático medio de las predicciones. Comentad el resultado**
+
+Una vez tenemos realizadas las particiones de la serie temporal, vamos a restringir nuestro análisis a los datos de entrenamiento; teniendo en cuenta que las observaciones comienzan en Octubre de 2015, con un periodo de recolección mensual, y finalizan en Octubre de 2022, obtenemos la siguiente serie temporal interactiva de la variable aleatoria del gasto de los turistas:
+
+```{r}
+training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% dygraph
+```
+
+
+Como podemos apreciar, vemos que la serie presenta, a grosso modo, una tendencia nula sin crecimiento ni decrecimiento a largo plazo; es de destacar, la abrupta caída que se produce entre los meses de Marzo y Junio de 2020 que, a su vez, coincide con los meses de confinamiento y restricciones en los vuelos producidos por la pandemia.
+
+Por otro lado, vemos que la serie es heterocedástica ya que, incluso excluyendo el comportamiento aislado del 2020, la serie muestra un comportamiento cada vez más a la alza, principalmente en los meses de verano, hasta su descenso y subsiguiente recomposición debido a la desescalada.
+
+Precisamente esta última apreciación, nos induce a abordar la propiedad de estacionalidad. Si tan solo nos limitamos a observar la serie y ampliarla, ya podemos percibir en ella, anualmente, un comportamiento estacional para con el crecimiento del gasto de los turistas en los meses de verano ya que, debido a las condiciones climatológicas, el clima cálido de Menorca suscita la visita de los turistas, procedentes de naciones con climas más fríos, y, en consecuencia, realizar un desembolso en sus vacaciones. Veamos este hecho con más detalle con el siguiente gráfico:
+
+```{r}
+#Las siguientes líneas se han pensado para ofrecer un boxplot estético.
+
+temporal=tibble(month=training %>% distinct(month) %>% pull(month),
+                mes=c("Octubre","Noviembre","Diciembre","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre"))
+
+training %>% left_join(temporal,by="month") %>% select(-c(year,month)) %>% mutate(mes=factor(mes,levels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"))) %>% ggplot(aes(x=mes,y=Gasto_persona))+
+  geom_boxplot()+
+  coord_flip()+
+  ylab("Gasto por turista(euros)")+
+  xlab("Mes")+
+  ggtitle(label ="Frecuencias de gasto de los turistas en Menorca" )+
+  theme_gray()
+
+```
+
+Como intuíamos, las frecuencias de gasto más altas se asocian a los meses correspondientes a la temporada de verano. Por tanto, esta componente estacional deberá ser tratada cuidadosamente en las siguientes secciones.
+
+Observemos además que en nuestro data frame se incluyen *outliers*. Con el siguiente código vemos que los valores más bajos de gasto por persona se corresponden con los primeros meses de confinamiento.
+
+```{r}
+training %>% filter(Gasto_persona <50)
+```
+
+Pasemos ahora con los gráficos de la función de correlación simple y parcial; empecemos por el simple:
+
+```{r}
+training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% ggAcf(type = c("correlation"))
+```
+
+Lo apreciamos en el gráfico, son las correlaciones, de Pearson, entre las distintas versiones temporales de la variable aleatoria del gasto de los turistas a lo largo del tiempo; recuérdese que asumimos que la variable tiene una índole aleatoria que fluctúa con el tiempo pero que, en esencia, es la *misma* en cuanto a lo qué estamos midiendo a través de ella.
+
+Así pues, lo que podemos ver es una oscilación en cuanto al valor de las correlaciones; por destacar, toda versión temporal se correlaciona con la que esta 6 meses adelante de forma negativa, mientras que con la que esta separada por un año hay una correlación positiva; ello tiene sentido, pues en los meses de verano e invierno, respectivamente, esperamos comportamientos similares del gasto de los turistas mientras que, por otro lado, separaciones temporales de 6 meses deberían exhibir, como vemos además, comportamientos duales del gasto. Todo esto se debe, en esencia, a la componente estacional que subyace en los datos y que ya hemos detectado previamente.
+
+Sin embargo, estas correlaciones están contaminadas ya que, al ser $\rho_1$ no nula, entonces siempre que consideramos la correlación entre dos versiones temporales, incluimos las correlaciones de las versiones temporales intermedias entre ambas; por este motivo, veamos las mismas correlaciones pero parciales:
+
+```{r}
+training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% ggAcf(type = c("partial"))
+```
+
+Como podemos observar, ahora se presenta un panorama totalmente distinto ante nosotros; vemos que, las únicas correlaciones parciales significativas y consideradas no nulas, corresponden a $\rho_1$ y $\rho_6$;en concreto, esto significa que toda versión temporal solo tiene una influencia significativa directa sobre la que la sucede y la que esta medio año por delante suya. A partir de ésta última, el resto de correlaciones directas se consideran prácticamente nulas. 
+
+
+Prosiguiendo con el análisis, vamos a pasar con la descomposición de la serie temporal mediante un modelo aditivo o multiplicativo. **¿Cuál elegir?** En la vida real la mayoría de variables económicas muestran un modelo multiplicativo. Si observamos los datos hasta inicios de 2020 podríamos pensar que los datos tienen una variabilidad por lo general constante que nos podría hacer plantearnos un modelo aditivo. Sin embargo, teniendo en cuenta que la aparición de la COVID-19 trajo consigo un desplome en la economía, vemos que en este periodo la variabilidad de los datos se ve muy afectada aumentándola significativamente. Además, la tendencia tampoco resulta estable a causa de los meses de confinamiento. Así, optaremos por un modelo multiplicativo tal que entenderemos las versiones temporales de la variable aleatoria según el siguiente esquema:
+
+$$
+y_t=\mu_t\cdot S_t \cdot e_t
+$$
+
+donde:
+
+* $\mu_t$: es la componente referente a la tendencia.
+* $S_t$: es la componente estacional.
+* $e_t$: es un ruido aleatorio blanco que es *i.i.d* con distribución normal de media cero y varianza constante.
+
+Así pues, visualicemos las componentes multiplicativas:
+
+```{r}
+training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% decompose(type = "multiplicative") %>% autoplot
+```
+
+Como podemos observar, el modelo multiplicativo parece plausible ya que el ruido blanco exhibe un comportamiento independiente a lo largo del tiempo con una variabilidad, en líneas generales, constante.
+
+Por último, vamos a utilizar este modelo multiplicativo para realizar predicciones sobre los datos test. La primera idea que teníamos en mente era aplicar logaritmos, pero al tener valores muy pequeños no lo hemos visto conveniente. En su lugar, llevaremos a cabo un modelo de regresión lineal para obtener la tendencia de los datos. Seguidamente, realizaremos las predicciones sobre los test añadiendo los valores de la componente estacional, la cual supondremos invariante en el tiempo.
+
+De esta manera, construimos el modelo lineal:
+
+```{r}
+tiempo=1:nrow(training)#Guardamos los instantes temporales de valor de la tendencia
+#Construimos el modelo
+modelo_tendencia=training %>% select(Gasto_persona) %>% mutate(Tiempo=tiempo) %>% lm(Gasto_persona~Tiempo,.)
+summary(modelo_tendencia)
+```
+
+En el resumen del modelo de regresión observamos que no es un buen ajuste ya que, entre otros factores, solo tiene como coeficiente significativo el de la ordenada en tiempo nulo. Este hecho naturalmente es terrible ya que indica que no hay **una dependencia lineal** del gasto en función del tiempo. No obstante, esto último no indica que no haya otra relación subyacente que relacione el gasto con la variable temporal: armónica, logística, etc.
+
+
+Ahora, hallamos la componente estacional:
+
+```{r}
+estacional=training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% decompose(type = "multiplicative") %>% .$seasonal
+estacional
+```
+
+y ahora la añadimos a los test con sus respectivos tiempos para predecirlos:
+
+```{r}
+#Fijémonos en que empezamos en Octubre y acabamos en Septiembre con las componentes estacionales únicas
+estacionales_unicas=estacional %>% as.matrix %>% .[1:12,1]
+estacionales_unicas
+#Hacemos una tabla con las estacionales y meses
+tabla_aux=tibble(Comp_S=estacionales_unicas,month=training %>% distinct(month) %>% pull(month))
+#Añadimos al test
+Test=test %>% left_join(tabla_aux,by="month") %>% select(-year)
+#Y hacemos las predicciones sobre los test respecto a la tendencia
+data_test=data.frame(Gasto_persona=Test$Gasto_persona,Tiempo=69:85)
+predicciones_test=predict(modelo_tendencia,data_test)
+predicciones_test
+#Y juntamos todo en la tabla de los test
+Test=Test %>% mutate(Prediccion_tendencia=predicciones_test) %>% mutate(Prediccion=Prediccion_tendencia*Comp_S) %>% mutate(Tiempo=69:85) %>% select(-c(month,Comp_S,Prediccion_tendencia))
+```
+
+A continuación, representamos valores reales y los estimados:
+
+```{r}
+#Tomamos una tabla auxiliar para los datos reales
+Reales=datos %>% select(Gasto_persona) %>% mutate(Tiempo=1:85)
+#Y representamos
+colores=c("Prediccion"="red","Real"="blue")
+ggplot()+
+  #Parte real
+  geom_line(data=Reales,aes(x=Tiempo,y=Gasto_persona,color="Real"))+
+  #Parte predicha
+  geom_line(data=Test,aes(x=Tiempo,y=Prediccion,color="Prediccion"))+
+  #Estética
+  labs(x="Tiempo(meses)",y="Gasto",color="Leyenda",title = "Gasto real y estimado de los turistas")+
+  scale_color_manual(values = colores)+
+  theme_gray()
+  
+```
+
+Como podemos apreciar, nuestro modelo multiplicativo de la serie temporal ofrece unas predicciones sobre los test que, aún no otorgando una imagen cabal del comportamiento real de la serie, sí que reproduce su *tendencia* en cuanto a la variabilidad se refiere; en otras palabras, reproduce los comportamientos de crecimiento y decrecimiento. Veamos el error cuadrático medio de las estimaciones:
+
+```{r}
+Test %>% transmute(Diferencia_cuadratica=(Gasto_persona-Prediccion)^2) %>% summarise(ECM=mean(Diferencia_cuadratica)) %>% pull(ECM)
+```
+
+Como vemos, el error cuadrático medio es muy elevado indicando, claramente, que el modelo multiplicativo clásico es capaz de reproducir, grosso modo, las etapas de crecimiento y decrecimiento. Por contra, no nos permite hacer predicciones a futuro con una tasa de error cuadrático razonable.
+
+
+
+
+## Apartado II y III: Modelos SARIMA y predicciones
+
+**(2) [3 puntos] Ajustad un modelo SARIMA a la serie temporal para "aprender", justificad detalladamente la selección de los parámetros del modelo. Visualizad el ajuste del modelo.**
+
+El modelo ARIMA estacional, o SARIMA, incorpora factores estacionales y no estacionales en un modelo multiplicativo.Recordemos que la notación abreviada para el modelo es
+
+$$ARIMA(p,d,q)\times(P,D,Q)_S$$
+donde $p=$ orden AR no estacional, $d=$ orden de diferencias no estacional, $q=$ orden MA no estacional,$P=$ orden AR estacional, $D=$ orden de diferencia estacional, $Q=$ orden MA estacional y $S=$ ventana de tiempo del patrón estacional. 
+
+En nuestro data frame existe una estacionalidad en los datos mensuales para los cuales los valores altos tienden a ocurrir siempre en la temporada de verano y los valores bajos tienden a ocurrir siempre en la temporada de invierno. En este caso, $S=12$ (meses por año) es el lapso del comportamiento estacional periódico. 
+
+Recordemos que la serie original presenta heterocedasticidad (una variabilidad alta, especialmente por los dos meses en que tenemos valores nulos. Ésta se elimina aplicando logaritmos, pero el problema es que aplicar logaritmos a un valor nulo nos dará problemas. Una opción era aplicar logaritmos sin los dos ceros y después volverlos añadir, pero tendremos una alta variabilidad de nuevo al volver a añadirlos. Como la alta variabilidad nos la dan especialmente estos dos meses hemos optado por dejar los datos como están.
+
+Pasamos a examinar si existe una tendencia en nuestros datos. Ésta se suele poder apreciar directamente sobre el gráfico de la serie. A causa de los datos de la aparición del COVID vemos que la serie no oscila en torno a un valor. Volvamos a recordar la tendencia estimada que obteníamos con **decompose**.
+
+```{r}
+training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% decompose(type = "multiplicative") %>% .$trend %>% autoplot(main="Trend de los datos de training", ylab="Trend") 
+```
+
+Con este gráfico, junto con el ACF obtenido (calculado en el apartado I) que no decrecía, vemos que la serie presenta una tendencia. Procedemos a diferenciar los datos para ver si podemos eliminarla.
+
+```{r}
+dtraining = training %>% select(Gasto_persona) %>% ts(start = c(2015,10),frequency = 12) %>% diff()
+dtraining %>%  autoplot(main='Serie temporal tomando una diferencia de la serie')
+```
+
+Observamos un pico a mediados de 2020, pero podemos decir que la serie ya no presenta tendencia.
+
+```{r}
+dtraining %>% ggAcf(type = c("correlation"), main='ACF tomando una diferencia de la serie')
+```
+
+Ahora sí, tanto si observamos la representación de esta serie como fijándonos en la ACF (que efectivamente generalmente decrece) estamos ante una serie sin tendencia. Además, en este último gráfico podemos seguir apreciando esa estacionalidad que ya habíamos mencionado previamente. 
+
+Como están presentes tanto la tendencia como la estacionalidad, aplicamos una primera diferencia no estacional (la serie que hemos llamado $dtraining$) y una diferencia estacional (que llamaremos $d12training$).
+
+```{r}
+# Serie tomando 13 diferenciaciones
+d12training = dtraining %>% diff(12)
+d12training %>% autoplot()
+```
+
+El siguiente paso es calcular la ACF y la PACF para poder deducir los $p, q, P$ y $Q$.
+
+```{r}
+acf(d12training,60,main="ACF de la serie tomando 13 diferenciaciones");pacf(d12training,60,main="PACF de la serie tomando 13 diferenciaciones")
+```
+
+La primera observación que podemos hacer es que si nos fijamos en el comportamiento durante los 12 primeros rezagos todos son valores no significativos. Por tanto, una primera prueba que haremos será con $p=0$ y $q=0$ (se refiere a los términos no estacionales). Sin embargo, aparece un pico en el retardo 12 de ambas autocorrelaciones, es decir, aún hay un remanente de estacionalidad, lo que sugiere que $P=1$ y $Q=1$.
+
+Por tanto, optamos por $ARIMA(0,1,0)\times(1,1,1)_S$.
+
+```{r}
+m1 <- arima(d12training, order = c(0,1,0), seasonal = list(order = c(1,1,1), period = 12))
+m1
+BIC(m1)
+```
+
+Vemos que los valores que nos interesan ahora mismo son el AIC (cuanto más bajo mejor) y el **log likelihood** (cuanto mayor mejor).
+
+Probemos con un modelo distinto. Por ejemplo, $ARIMA(0,1,0)\times(0,1,0)_S$ y $ARIMA(0,1,0)\times(1,1,0)_S$.
+
+```{r}
+m2 <- arima(d12training, order = c(0,1,0), seasonal = list(order = c(0,1,0), period = 12))
+m2$loglik; BIC(m2); AIC(m2)
+```
+```{r}
+m3 <- arima(d12training, order = c(0,1,0), seasonal = list(order = c(1,1,0), period = 12))
+m3$loglik; BIC(m3); AIC(m3)
+```
+
+El valor AIC y BIC más bajos lo obtenemos con el último modelo. Y el valor **log likelihood** más alto lo obtenemos con el primer modelo, aunque el primero y el último están muy a la par. Así, deducimos que el mejor modelo para nuestros datos es el tercero.
+
+```{r}
+ts.plot(data_test)
+pronostico=forecast(m3)
+pronostico
+plot(pronostico)
+```
+
+Por último, para calcular el error cuadrático medio hacemos igual que en el anterior apartado:
+
+```{r}
+test_ts = ts(datos[3], frequency = 12, start = c(2015,10))[69:83]
+accuracy(pronostico, test_ts)
+```
+
+En este caso vemos que es: RMSE = 647.7432.
+
+
+
+
+
+
+
+
+
+
+
+

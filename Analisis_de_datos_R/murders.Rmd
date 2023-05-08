@@ -1,0 +1,613 @@
+---
+title: "Murders"
+subtitle: "Análisis de Datos GMAT 22-23"
+author: "Llorenç Capó Torres"
+output: 
+  pdf_document:
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+#Por comodidad, declaramos estas condiciones para todos los chunks
+knitr::opts_chunk$set(echo=TRUE,warning = FALSE,message = FALSE,comment = NA)
+```
+
+# Preliminares
+
+Antes de comenzar, cargaremos algunas de las librerías esenciales para poder confeccionar nuestras estructuras computacionales:
+```{r}
+library(tidyverse)#Invocamos el tidyverso
+library(magrittr)#Necesaria para algunos pipes avanzados
+library(kableExtra)#Librería para formatos de tabla
+library(tidyr)
+library(dplyr)
+library(readr)
+options(knitr.table.format = "latex")
+```
+
+
+
+# Ejercicios
+
+\vspace{0.5cm}
+
+**(1) Examinad los conjuntos de datos que están incluidos en R base y que se listan a continuación. Indicad si son o no datos tidy. Justificad brevemente vuestra respuesta en cada caso.[1/4 punto cada uno]**
+
+En las subsiguientes argumentaciones, tenganse en cuenta las siguientes observaciones:
+
+* Por comodidad, en algunos casos solo exhibiremos el encabezado de las tablas.
+
+* Nótese que la observación siempre viene dada por una variable (la variable independiente), ya sea un nombre, un tiempo u otro. En todo caso, cuando se habla de "las variables", salvo que se indique lo contrario, hace referencia a las variables dependientes a esta. Cuando se hace una sugerencia de como convertir algo en tidy no implica que sea la única posible. Por ejemplo, en el f se plantean dos opciones (marcadas con 1. y 2.).
+
+\newpage
+**a) `ChickWeight`**
+
+```{r echo=FALSE}
+ChickWeight%>%
+  head()%>%
+  kbl()%>%
+  kable_styling(latex_options = "hold_position")
+```
+\vspace{0.2cm}
+**No es tidy**. El motivo es que hay distintas filas que hacen referencia al mismo individuo/observación (pollo), simplemente están en tiempos diferentes.
+La forma de hacerlo tidy sería que cada observación fuera un pollo distinto y que cada instante en que se pesó así como el peso en ese instante fueran una columna/variable propiamente.
+
+
+
+**b) `BOD`**
+
+```{r echo=FALSE}
+BOD%>%
+  kbl()%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.2cm}
+Este data frame **es tidy**. Se mide la demanda de oxígeno de una misma y única muestra de agua en momentos distintos. Con lo cual, hay varias observaciones que hacen referencia a la misma muestra de agua en tiempos distintos, cosa similar al data frame anterior. Pero, al haber una sola agua objeto de estudio, cada observación es (y puede ser) el momento en el tiempo en que se mide el BOD y ocupa una sola fila. Esto es distinto al caso anterior porque ahí no había posibilidad de definir la observación sin que ocupara varias filas tal y como se presenta el data frame.
+
+
+**c) `BJsales`**
+
+```{r echo=FALSE}
+BJsales
+```
+
+\vspace{0.2cm}
+**No es tidy**. Se nos presenta una serie temporal de números que representan ventas pero no se nos indica el momento en el tiempo al que corresponde cada valor. De esta forma, al no tener variable temporal, no sería posible asegurar cual es la evolución exacta de estas ventas. El tiempo es la unidad muestral y el otro valor su única variable dependiente.
+
+**d) `EuStockMarkets`**
+
+```{r echo=FALSE}
+str(EuStockMarkets);head(EuStockMarkets)
+```
+\vspace{0.2cm}
+**No es tidy**. De forma similar al caso anterior, se nos presenta la evolución de 4 variables en el tiempo. En este caso son valores de 4 bolsas importantes de Europa (alemana, suiza, francesa y británica). Como en el caso anterior, no se nos indica cual es el momento en el tiempo de cada fila. Nótese que en la ayuda de R se nos dice que son valores diarios tomados al cierre de mercado entre 1991 y 1998 excluyendo fines de semana y festivos. Con lo cual, sería posible deducir todas las fechas mirando un calendario. En todo caso, al no estar específicamente incluído en el data frame, sería un extra que habría que hacer para convertirlo en tidy.
+
+
+**e) `Formaldehyde`**
+
+```{r echo=FALSE}
+Formaldehyde%>%kbl()%>%kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.2cm}
+Este data frame **es tidy**. Se nos da la relación entre una cantidad de un carbohidrato (que es la observación y variable independiente y hay una por fila) y la densidad óptica que es observable en un cromatógrafo (la única variable dependiente). 
+
+**f) `Orange`**
+```{r echo=FALSE}
+head(Orange)%>%kbl()%>%kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.2cm}
+**No es tidy**. El motivo es que se nos dan mediciones de la circunferencia de 5 árboles en distintos momentos del tiempo (los mismos tiempos para cada árbol) pero cada observación usa varias filas. Para que fuera tidy hay dos opciones, (1.) que cada árbol sea la observación y cada tiempo y circunferencia fueran sus variables dependientes o (2.) que cada tiempo fuera la observación y sus variables dependientes fueran las mediciones de la circunferencia de cada árbol.
+\newpage
+**g) `UCBAdmissions`**
+```{r echo=FALSE}
+str(UCBAdmissions);head(UCBAdmissions)
+```
+
+\vspace{0,2cm}
+
+**No es tidy**. Se separan distintas observaciones del mismo tipo en distintas tablas. Si consideramos como unidad muestral cada departamento, hay una tabla para cada observación, que son obviamente del mismo tipo. En cada tabla hay dos columnas y dos filas según género y estado de su solicitud de aceptación.
+Una forma de hacerlo tidy es con una sola tabla en que cada observación (fila) sea un departamento y haya 4 variables más que sean "hombres aceptados", "hombres rechazados", "mujeres aceptadas" y "mujeres rechazadas".
+
+
+\newpage
+**h) `DNase`**
+```{r echo=FALSE}
+head(DNase)%>%kbl()%>%kable_styling(latex_options = "hold_position")
+```
+
+**No es tidy**. Aquí también se presenta la misma observación usando varias filas, hay 11 runs del mismo experimento a distintas concentraciones de una proteína y para cada concentración en cada run hay dos filas (se midió dos veces en cada caso). Para que fuera tidy o bien (1.) cada run o (2.) cada concentración de la proteína (ya que son las mismas en cada run) tendrían que ser las observaciones y, luego, o bien las mediciones (1.) para cada concentración o (2.) para cada run, respectivamente, serían sus variables dependientes.
+
+
+
+
+
+
+
+
+\newpage
+**(2) Cargad el conjunto de datos `murders` (asesinatos de EE.UU.).**
+
+Para comezar, cargaremos el conjunto de datos con el que vamos a operar, a saber, *murders*:
+```{r}
+library(dslabs)#Libería necesaria para cargar nuestro conjunto de datos
+datos=murders;class(murders)
+```
+Fijémonos, en que nuestro conjunto de datos viene dado por R en formato *data.frame* el cual, a título personal, no me resulta cómodo y por ello trabajaré con él en un formato *tibble*:
+```{r}
+datos_tidy=as_tibble(datos)#Convertimos a formato tibble
+#Y mostramos su estructura y el encabezado
+datos_tidy%T>% #Primero, hacemos un resumen del tibble entre medias con una tubería auxiliar
+  glimpse()%>%#Y exhibimos las primeras filas de forma estética
+  head()%>%
+  kbl(caption = "Asesinatos en EE.UU")%>%
+  kable_styling(latex_options = "hold_position")
+```
+Como podemos apreciar, nuestro conjunto de datos multivariado posee 51 observaciones y 5 variables por columnas, entre las cuales se encuentra la categórica nominal *state* que indica las unidades muestrales que son, a su vez, los estados de cada región; en lo que respecta a las demás, tenemos las cualitativas nominales *abb* y *region*, y las cuantitativas de razón *population* y *total*.
+
+*¿Constituye un conjunto de datos tidy?* Naturalmente; al observar la tabla, vemos cómo proyecta una expresión rectangular en la que cada columna representa una variable, con su debido nombre indicado, y donde cada fila refleja una observación que nace a través del estudio de las variables en las **diferentes** unidades muestrales las cuales, por añadidura, son ostensibles.
+
+Llegados a este punto, estamos preparados para con las subsiguientes cuestiones:
+\newpage
+**(a) Utilizad la función `mutate` para añadir una columna llamada `rate` con la tasa de asesinatos por 100000 habitantes. Mostrad el resultado con algunas de las filas [1/2 punto]**
+
+De forma inmediata, obtenemos los siguientes resultados:
+```{r}
+#Con la tubería adecuada, añadiremos los ratios de asesinatos y la conservaremos permanantemente
+datos_tidy %<>% mutate(rate=round(total/population*100000,2))
+#Y mostramos algunos ratios de algunos estados
+datos_tidy%>%
+  head()%>%
+  kbl(caption = "Tasa de asesinatos por cada 100.000 habitantes")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+
+\vspace{0.3cm}
+**(b) Filtra la tabla de datos del apartado anterior para mostrar solo las entradas para las que la tasa de asesinatos es inferior a 0.71 [1/2 punto]**
+
+En pocas líneas, realizamos la filtración requerida
+```{r}
+datos_tidy%>%
+  filter(rate<0.71)%>%#Filtramos y representamos todas las entradas
+  kbl(caption = "Tasas de asesinatos inferiores a 0.71")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+\vspace{0.3cm}
+**(c) Añadid una columna con nombre rank que contenga el rango de la tasa de asesinatos de mayor a menor. Mostrad las 3 ciudades con más tasa de asesinatos [1/2 punto]**
+
+En primer lugar, recordemos que la función *rank* de R, ante un vector numérico como entrada de información, devuelve un vector donde, a cada componente del vector numérico, le asigna su posición en el vector ordenado de forma creciente; ahora bien, nos piden el rango de mayor a menor, no de menor a mayor. 
+
+Demos una idea de cómo calcular este rango. Imaginemos un vector numérico con $n$ entradas de manera que le aplicamos la función *sort* tal que nos queda ordenado de forma creciente, a saber
+
+$$c(x_1,x_2,\ldots,x_n)\quad \overrightarrow{sort}\quad x'_1\leq x'_2 \leq \ldots \leq x'_n$$
+Si nos fijamos, veremos que, al ordenar de manera creciente los $x_i$, su posición en la sucesión es, exactamente, el valor que nos ofrece la función *rank* que, en adelante, denotaremos con $rank_{-}$. *¿Y qué nos revela esto*? Si observamos minuciosamente, nos daremos cuenta de que, en esencia, el rango decreciente de cada elemento $x_i$ no es más que su posición leyendo la sucesión creciente de derecha a izquierda y, en lo que sigue, lo denotaremos con $rank_{+}$.
+
+Así pues, con un sencillo razonamiento, concluimos que:
+
+$$
+rank_{-}(x_i)+rank_{+}(x_i)=n+1
+$$
+Por lo tanto, tenemos las siguientes líneas de código
+```{r}
+#Calculamos los rangos en una nueva variable
+datos_tidy%<>%mutate(.,rank=nrow(.)+1-rank(.$rate))
+#Y mostramos las 3 ciudades con mayor tasa de asesinatos
+datos_tidy%>%
+  arrange(rank)%>%#Reordenamos las filas en base al crecimiento de la variable rank
+  select(state,rate)%>%#Seleccionamos la variable estado y rate
+  slice_head(n=3)%>%#Y nos quedamos con las 3 primeras
+  kbl(caption = "Tres estados con mayor ratio de asesinatos")%>%
+  kable_styling(latex_options = "hold_position")
+```
+\newpage
+\vspace{0.5cm}
+**(3) Continuamos trabajando con el conjunto de datos `murders`.**
+
+**(a) Cread un nuevo data frame con el nombre `no_south` que elimina los estados del sur. ¿Cuántos estados hay en esta categoría? [1/2 punto]**
+
+Se nos pide ahora eliminar los estados que sean pertenecientes a las regiones del Sur. Para empezar esta filtración, veamos cuántos puntos cardinales del Sur se consideran en la tabla:
+```{r}
+levels(datos$region)#Ya que es un factor declarado en la tabla
+```
+Como vemos, solo hay uno y por tanto procedemos a eliminar las filas, a saber estados, de esta región; el resultado, lo guardaremos en una nueva variable llamada *no_south*:
+```{r}
+library(stringr)#Una librería útil
+no_south=datos%>%
+  filter(str_detect(region,"S")==FALSE)#Filtramos los valores de region que no tengan S
+```
+
+En este punto, se nos pregunta además cuántos estados hay en esta categoría. Esta pregunta adquiere su respuesta en dos posibles vertientes:
+
+* Cantidad de estados por región
+* Cantidad de estados en total
+
+Responderemos a ambas preguntas en pocas líneas de código:
+```{r}
+no_south%>%
+  summarise(Total_estados_no_sur=n())%>%
+  kbl()%>%
+  kable_styling(latex_options = "hold_position")
+```
+```{r}
+no_south%>%
+  group_by(region)%>%#Agrupamos por valores iguales de region
+  summarise(Total_estados=n(),.groups = "drop")%>%#Fijémonos en que desagrupamos por precaución
+  kbl(caption = "Total estados por región")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.3cm}
+
+**(b) También podemos usar `%in%` para filtrar con `dplyr`. Cread un nuevo data frame llamado `murders_nw` con solo los estados del noreste y oeste. ¿Cuántos estados hay en esta categoría? [1/2 punto]**
+
+A continuación, vamos a filtrar los estados pertenecientes o al Noreste u Oeste; el resultado, lo guardaremos en una variable denominada *murders_nw*:
+```{r}
+murders_nw=datos%>%
+  filter(region %in% c("Northeast","West"))#Filtramos las filas de region que son del Noreste u Oeste
+```
+
+Análogamente, respondemos al total de estados tanto por región como en total:
+```{r}
+murders_nw%>%
+  summarise(Total_estados=n())%>%
+  kbl()%>%
+  kable_styling(latex_options = "hold_position")
+```
+```{r}
+murders_nw%>%
+  group_by(region)%>%
+  summarise(Total_estados=n(),.groups = "drop")%>%
+  kbl(caption = "Total estados por región")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+\vspace{0.3cm}
+
+**(c) Suponed que queréis vivir en alguno de los estados que estan en el data frame `murders_nw` donde la tasa de asesinatos sea inferior a 1. Cread una tabla con la lista de los estados de donde elegiríais pero muestra solo el nombre del estado, la tasa de asesinato y el rango. ¿Cuál es el estado que deberías seleccionar como primera opción? [1/2 punto]**
+
+Vamos a considerar, que queremos vivir en alguno de los estados del dataset *murders_nw* donde la tasa de asesinato por cada 100.000 habitantes sea inferior a 1. Veamos qué estados satisfacen dichas condiciones; para ello, deberemos añadir la información que obtuvimos en la tabla *datos_tidy* con la que tenemos en *murders_nw*:
+```{r}
+murders_nw_full=as_tibble(murders_nw)%>%#Por conveniencia pasamos a tibble
+  left_join(datos_tidy,by="state")%>% #Añadimos la información de datos_tidy
+  select(state,rate,rank)%>%#Ahora nos quedaremos solo con las variables state, rate y rank
+  filter(rate<1)#Y filtramos los estados con ratio menor que 1
+#Y la mostramos por pantalla
+murders_nw_full %>% 
+  kbl(caption = "Estados de Nordeste y Oeste con ratio inferior a la unidad")%>%
+  kable_styling(latex_options = "hold_position")
+```
+\newpage
+Y por tanto, identificamos el estado más seguro:
+```{r}
+murders_nw_full%>%
+  arrange(rank)%>%#Ordenamos los rangos de menor a mayor
+  slice_tail(n=1)%>%#Y seleccionamos el último
+  select(state,rate)%>%#Seleccionamos el estado y su ratio
+  kbl(caption = "Estado ideal")%>%
+  kable_styling(latex_options = "hold_position")
+```
+Uno podría preguntarse, de manera acertada, por qué se ha realizado un arrange de la variable *rank* para luego escoger la última observación. Recordemos, que los rangos tomados representan las posiciones de las tasas de asesinato por cada 100.000 habitantes ordenadas de mayor a menor; por tanto, nos interesa tener un rango lo máximo posible para minimizar la tasa de asesinato.
+
+En definitiva, el estado más seguro, en cuanto a criminalidad se refiere, del Nordeste u Oeste es *Vermont*.
+
+\newpage
+
+**(4)Exploremos ahora los datos de la encuesta recopilada por el Centro Nacional de Estadísticas de Salud de Estados Unidos (NCHS por sus siglas en inglés). Este centro ha realizado una serie de encuestas de salud y nutrición desde la década de 1960. A partir de 1999, alrededor de 5,000 individuos de todas las edades han sido entrevistados cada año y completan el examen de salud de la encuesta. Parte de los datos está disponible a través del paquete NHANES. Una vez que instale el paquete NHANES, puede cargar los datos así:**
+
+En primer lugar, carguemos el conjunto de datos multivariante a través de la librería pertinente, y veamos qué tipo de estructura engendra:
+
+```{r}
+library(NHANES)#Librería necesaria para acceder a los datos
+
+encuestas=NHANES::NHANES;class(encuestas)
+```
+Así pues, al ser una estructura de datos de tipo *data.frame*, examinamos sus propiedades con la función adecuada
+
+```{r}
+str(encuestas)
+```
+Como podemos apreciar, el *str* nos revela que poseemos un total de 10.000 observaciones y 76 variables entre las cuales distinguimos tanto cualitativas como cuantitativas. *¿Cuáles serían las unidades muestrales?* Personalmente, considero que, en todo conjunto de datos multivariante que se precie, la variable categórica nominal que indica las unidades muestrales debe yacer en el dataset como una columna más; por tanto, considero que la variable **ID** identifica a las personas que realizan la encuesta y, a través de ésta última, obtenemos los valores del resto de variables.
+
+No obstante, en este punto descubrimos una terrible verdad: **¡No es tidy este conjunto de datos!**
+En efecto, ya que si examinos la columna *ID* vemos que:
+
+```{r}
+head(encuestas$ID)
+```
+hay unidades muestrales que se repiten cuando **todas deben ser diferentes en un dataset tidy**. En este momento, hay quién podría argumentar que mi planteamiento no es correcto ya que, quizás, la variable *ID* no sea la que refleja las unidades muestrales. *¿Tienen razón?* Es una refutación plausible, pero observando las tres primeras filas del dataset, a saber:
+
+```{r echo=FALSE}
+encuestas[1:3,1:8]%>%kbl(caption="Extracto de la tabla de encuestas")%>%kable_styling(latex_options = "hold_position")
+```
+resulta, como mínimo, sospechoso que coincidan todos los valores de todas las variables para un mismo *ID*(se han omitido las restantes columnas por motivos de espacio, pero se repite el mismo patrón de coincidencia). Por consiguiente, concluimos que hay unidades muestrales repetidas.
+
+Por otra parte, todavía hay algo que puede ser aún más esperpéntico ya que, si nos dirigimos a la variable *AgeDecade*, vemos que:
+
+```{r}
+head(as.character(encuestas$AgeDecade))
+```
+*¿Qué son esos espacios en blanco?* Sencillo: una molestia innecesaria para con nuestro análisis.
+
+A la luz de lo expuesto, no nos queda otra alternativa que llevar a cabo una limpieza de datos preliminar para tener un conjunto de datos multivariado que sea *tidy* y que, por añadidura, no presente trabas computacionales. Sin más dilación, comencemos con la limpieza:
+
+```{r}
+encuestas%<>%#Para economizar variables, utilizamos este pipe que nos guarda todo el proceso
+  #Primero arreglemos los espacios de la variable AgeDecade
+  #Nótese que solo modificamos los valores de la columna existente, no añadimos ninguna
+  mutate(AgeDecade=gsub(" ","",AgeDecade))%>%
+  #Ahora eliminamos las observaciones repetidas
+  group_by(ID)%>%
+  slice_head(n=1)%>%
+  ungroup()
+#Y exhibimos la estructura
+str(encuestas)
+```
+Como podemos apreciar, nuestras modificaciones han hecho que pasemos de 10.000 a 6.779 observaciones, es decir las unidades muestrales no repetidas, y además hemos corregido el problema de los espacios en blanco de la variable *AgeDecade*.
+
+Ahora sí, pasamos con las preguntas del ejercicio.
+
+\vspace{0.3cm}
+
+**(a) Consideremos los datos sobre la presión arterial sistólica. Primero, seleccionamos un grupo para establecer el estándar. Utilizaremos hembras de 20 a 29 años. `AgeDecade` es una variable categórica con estas edades. Tened en cuenta que la categoría está codificada como " 20-29", ¡con un espacio al frente! ¿Cuál es la media y la desviación estándar de la presión arterial sistólica? Guardadla en una variable llamada `ref` [1/2 punto] **
+
+Se nos pide considerar de nuestro conjunto de datos múltivariante los sujetos con las siguientes características:
+
+* Que sea mujer.
+* Edad entre 20 y 29 años.
+
+Para este grupo de sujetos, calcularemos la media y desviación típica de la presión arterial sistólica media, a saber *BPSysAve*. Así pues, primero empezamos por identificar al grupo de sujetos que queremos estudiar
+
+```{r}
+#Primero filtramos los sujetos de interés
+
+grupo1=encuestas%>%
+  select(Gender,AgeDecade,BPSysAve)%>%#Seleccionamos el género, decada de año y presión arterial
+  filter(Gender=="female" & AgeDecade=="20-29")#Filtramos las filas en base a nuestro criterio
+#Y exhibimos parte de la tabla por pantalla
+grupo1[1:8,]%>%kbl(caption = "Grupo de estudio")%>%kable_styling(latex_options = "hold_position")
+```
+Como podemos observar, hay algunos sujetos que no tienen registrada su presión sanguínea sistólica media; realizaremos una imputación múltiple de esos valores por la media del resto. Para sortear ciertos problemas de conversión de valores enteros y de coma flotante, declararemos la columna de la presión sanguínea sistólica como un *numeric*:
+
+```{r}
+#Cambiamos la clase de la columna presión sanguínea
+grupo1$BPSysAve=as.numeric(grupo1$BPSysAve)
+#Realizamos la imputación
+grupo1%<>%
+  replace_na(replace = list(BPSysAve=mean(.$BPSysAve,na.rm=T)))
+```
+
+Una vez realizada la imputación, pasamos a calcular la media y desviación típica muestral:
+
+```{r}
+ref=grupo1%>%
+  summarise(mu_muestral=mean(BPSysAve),sigma_muestral=sqrt(var(BPSysAve)))
+#Y la mostramos por pantalla
+ref%>%kbl(caption = "Media y desviación típica muestral")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.3cm}
+**(b) Asignad la media anterior a una variable numérica `ref_avg`. Sugerencia: usad `pull` que nos evita el problema de guardar un número como un data frame. Comprobad que el resultado es de clase numérica [1 punto]** 
+
+En pocas líneas, tenemos que:
+
+```{r}
+ref_avg=ref%>%
+  pull(mu_muestral)
+ref_avg;class(ref_avg)
+```
+Como vemos, la función *pull* nos extrae la media muestral calculada en una variable que, por añadidura, es de tipo *numeric*.
+\vspace{0.3cm}
+
+**(c) Ahora indicad los valores mínimo y máximo para el mismo grupo de edad [1/2 punto]**
+
+Veamos ahora los valores máximo y mínimo de la presión sanguínea sistólica media en el mismo grupo de sujetos anterior, tal que:
+
+```{r}
+grupo1%>%
+  summarise(Presion_maxima=max(BPSysAve),Presion_minima=min(BPSysAve))%>%
+  kbl(caption = "Presiones máxima y mínima")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+\vspace{0.3cm}
+
+**(d) Calculad la media y la desviación estándar para las hembras, pero para cada grupo de edad por separado. Tened en cuenta que los grupos de edad se definen por `AgeDecade` [1 punto]**
+
+A continuación, vamos a considerar los mismos sujetos que en los apartados anteriores pero sin restricción en cuanto a la franja de edad, y calcularemos la media y desviación típica muestral de la presión sanguínea sistólica media por grupos de edad; tal que tenemos:
+
+```{r}
+#Primero identificamos a los sujetos del nuevo grupo
+grupo2=encuestas%>%
+  select(Gender,AgeDecade,BPSysAve)%>%
+  filter(Gender=="female" & is.na(AgeDecade)==F)
+```
+
+Fijémonos que, en la filtración, también hemos impuesto que el valor de *AgeDecade* no sea un *NA* ya que, en algunas entradas, se da el caso.
+
+Contrario a lo que hicimos en el primer apartado, en este caso no llevaremos a cabo una imputación múltiple de los datos perdidos de la presión sanguínea sistólica media.*¿Por qué?* La razón principal radica en que, si sustituyo los valores ausentes de la presión sanguínea con la presión sanguínea media global de todas las mujeres que tienen presión sanguínea asociada, cuando vayamos a calcular la presión sanguínea media por franjas de edad habrá, de manera inexorable, una influencia subyacente entre las franjas para con la determinación de la media y desviación típica muestral de la presión sanguínea por franja. 
+
+*Pero...¿Por qué no haces la imputación múltiple por franjas de edad? ¿No resuelve el problema planteado?* Desde luego, el problema es que no cambia nada; es decir, realizar la imputación de valores con la media muestral no cambia el valor ni de la media muestral completa ni de la desviación típica muestral completa de la muestra. Esto último, naturalmente, indica que lo realizado en el primer apartado es una exhibición computacional.
+
+Una vez realizada esta aclaración, pasemos con los cálculos por franja de edad:
+
+```{r}
+ref_por_franja_mujeres=grupo2%>%
+  group_by(AgeDecade)%>%
+  summarise(mu_muestral_M=mean(BPSysAve,na.rm=T),sigma_muestral_M=sqrt(var(BPSysAve,na.rm = T)),
+            .groups = "drop")
+#Y mostramos los resultados
+ref_por_franja_mujeres%>%
+  kbl(caption =
+        "Media y desviación típica muestral de la presión de las mujeres por franja")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+\vspace{0.3cm}
+**(e) Repetid el ejercicio anterior para los varones [1/2 punto]**
+
+Ahora se nos pide realizar lo mismo pero para los hombres; de forma inmediata, procedemos de la misma forma:
+
+```{r}
+#Primero identificamos a los sujetos varones
+grupo3=encuestas%>%
+  select(Gender,AgeDecade,BPSysAve)%>%
+  filter(Gender=="male" & is.na(AgeDecade)==F)
+#Calculamos la media y desviación típica por grupo de edad
+ref_por_franja_hombres=grupo3%>%
+  group_by(AgeDecade)%>%
+  summarise(mu_muestral_H=mean(BPSysAve,na.rm=T),sigma_muestral_H=sqrt(var(BPSysAve,na.rm = T)),
+            .groups = "drop")
+#Y lo mostramos por pantalla
+ref_por_franja_hombres%>%
+  kbl(caption = 
+        "Media y desviación típica muestral de la presión de los hombres por franja")%>%
+  kable_styling(latex_options = "hold_position")
+
+```
+
+
+\vspace{0.3cm}
+
+**(f) Podéis combinar ambos resúmenes para las hembras y los varones en una línea de código. Esto es porque group_by nos permite agrupar por más de una variable. Obtened una gran tabla de resumen usando [1/2 punto]**
+
+Ahora se nos pide combinar toda la información obtenida por géneros en una sola tabla. Podríamos rehacer todo el código filtrado del dataset *encuestas* las columnas *Gender*, *AgeDecade* y *BPSysAve*, y ,agrupando por género y franja de edad, realizar todos los cálculos de nuevo; no obstante, gracias a las funciones *join*, no será necesario ni construir una gran tabla ni hacer un código extenso, ya que
+
+```{r}
+ref_por_franja_mujeres%>%
+  left_join(ref_por_franja_hombres,by="AgeDecade")%>%
+  kbl(caption = 
+        "Media y desviación típica muestral de la presión sanguínea por género y franja de edad")%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+\vspace{0.3cm}
+\newpage
+**(g) Para los varones entre las edades de 40-49, comparad la presión arterial sistólica según raza, como aparece en la variable `Race1`. Ordenad la tabla resultante según la presión arterial sistólica media de más baja a más alta [1/2 punto]**
+
+Como último grupo de sujetos a estudiar, vamos a tomar a los hombres de entre 40 y 49 años para estudiar la media muestral de la presión sanguínea sistólica según la raza; así pues, procedemos de manera análoga a los anteriores apartados:
+
+```{r}
+#De nuevo, evitamos los hombres que no estan clasificados por raza
+grupo4=encuestas%>%
+  select(Gender,AgeDecade,BPSysAve,Race1)%>%
+  filter(Gender=="male" & AgeDecade=="40-49" & is.na(Race1)==F)
+#Ahora calculamos la media muestral de la presión sanguínea por raza
+
+grupo4%>%
+  group_by(Race1)%>%
+  summarise(mu_muestral=mean(BPSysAve,na.rm=T),.groups = "drop")%>%
+  arrange(mu_muestral)%>%#Reordenamos las filas en función del valor creciente de la media
+  kbl(caption = 
+        "Media muestral de la presión sanguínea por raza para varones de entre 40 y 49 años")%>%
+  kable_styling(latex_options = "hold_position")
+
+```
+Como podemos apreciar, nuestro conjunto de datos nos revela que, en media, los hombres de entre 40 y 49 años de raza negra son los que tienen mayor presión arterial sistólica mientras que, por su parte, la raza blanca es la que menos padece.
+
+
+
+\newpage
+
+\vspace{0.5cm}
+**(5) Ejecutad el siguiente código para definir el objeto `co2_wide`:**
+
+
+```{r}
+
+co2_wide <- data.frame(matrix(co2, ncol = 12, byrow = TRUE)) %>%
+
+  setNames(1:12) %>%
+
+  mutate(year = as.character(1959:1997)) 
+
+co2_wide
+```
+
+
+**(a) Utilizad la función `pivot_longer` para convertir este conjunto de datos a un formato tidy. Nombrad a la columna con las mediciones de CO2 `co2` y nombrad a la columna de mes `month`. Nombrad al objeto resultante `co2_tidy` [1/2 punto]**
+
+```{r}
+co2_tidy <- co2_wide %>% 
+  as_tibble() %>% 
+  pivot_longer(cols = where(is.numeric), names_to= "month", values_to= "co2") %>% 
+  relocate(co2, .before = "year" ) %>% 
+  relocate(month, .before = "year")
+co2_tidy <- co2_tidy %>% mutate(across(year, as.numeric))
+co2_tidy
+```
+
+
+Notemos que este conjunto de datos es tidy ya que cada unidad muestral (el CO2) se corresponde a una única fila cuyas variables son el mes en que se tomó la medición y el año.
+
+\vspace{0.3cm}
+**(b) Queremos ver si la tendencia mensual está cambiando, por lo que eliminaremos los efectos del año. Primero, calculad los promedios anuales. Guárdadlo en un objeto llamado `prom_anual` [1/2 punto]**
+
+\vspace{0.3cm}
+
+Calculamos la media anual y creamos un nuevo tibble llamado 'prom_anual' que contiene los años y su media correspondiente.
+
+```{r}
+prom_anual <- co2_tidy %>% 
+  group_by(year) %>% 
+  summarise(across(.cols = "co2", ~ mean(., na.rm = T), .names = "prom_anual"), .groups = "drop")
+prom_anual
+```
+
+Necesitamos cambiar la variable 'year' a tipo 'dbl' en lugar de 'chr' para hacer funcionar 'geom_line' más adelante.
+
+```{r}
+prom_anual <- prom_anual %>% mutate(across(year, as.numeric))
+```
+
+A continuación representamos el promedio de CO2 anual para ver si ha habido variaciones a lo largo de los años.
+
+```{r}
+ggplot(data = prom_anual) + 
+  geom_line(mapping = aes(x = year, y = prom_anual))+
+  geom_point(mapping = aes(x = year, y = prom_anual),col='red')+
+  labs(title='Promedio anual del CO2',
+       x='Año',
+       y='CO2')
+```
+
+Observamos que a medida que los años pasan, el nivel promedio de CO2 anual aumenta significativamente. Esperamos por tanto que con el promedio mensual, es decir, centrándonos en un mes, seguirá un tendencia al alza. 
+
+Ayúdemonos de otro gráfico para confirmarlo representando el CO2 de todos los meses junto con un método de suavizado no paramétrico para ver la tendencia que siguen.
+
+```{r}
+# nos hemos visto oblifados a convertir a un factor ordenado la variable month
+# ya que de otra forma los gráficos no salían ordenados
+co2_tidy <- co2_tidy %>% mutate_at(vars(month), factor, levels = as.character(c(1:12)))
+
+ggplot(data = co2_tidy) + 
+  geom_point(mapping = aes(x = year, y = co2,color=month))+
+  geom_smooth(mapping = aes(x = year, y = co2),color='black')+
+  labs(title='Representación del CO2 de todos los meses por año',
+       x='Año',
+       y='CO2')
+```
+
+Observamos que con los años, no importa el mes en el que nos encontremos, el nivel de CO2 aumenta sin haber ningún valor atípico.
+
+```{r}
+ggplot(data = co2_tidy) + 
+  geom_point(mapping = aes(x = year, y = co2,color=month)) + 
+  facet_wrap(~ month, nrow = 4) +
+  labs(title='Representación del CO2 de cada mes por año',
+       x='Año',
+       y='CO2')
+```
+
+En este último gráfico seguimos confirmando aquello que ya habíamos postulado anteriormente. Vemos que en todos los meses el valor del CO2 aumenta a medida que avanza el tiempo. Por tanto, concluimos que la tendencia mensual varía con el tiempo aumentado el nivel de CO2 con el tiempo.
+
+

@@ -1,0 +1,698 @@
+---
+title: "Encuesta sobre el estrés en la UIB"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+En este trabajo vamos a estudiar el nivel de estrés de los estudiantes de la UIB y vamos a intentar encontrar relaciones entre el nivel de estrés y otras variables recogidas mediante nuestra encuesta.
+
+A continuación, tenemos los datos que recogimos de alumnos de la universidad. Antes de empezar con el análisis descriptivo y inferencial, vamos a procesar la información que hemos obtenido. Para ello vamos a cargar el csv de los datos de la encuesta. También cambiaremos el nombre y el orden de algunas variables ya que nos será más cómodo más adelante.
+
+```{r}
+datos = read.csv("enquesta1.csv",header=TRUE, encoding = "UTF-8")
+```
+
+Vamos a eliminar la variable marca temporal, que nos indica en qué momento se contestó la encuesta.
+
+```{r}
+datos = datos[,-1]
+```
+
+Cambiamos algunos nombres de variables. Como podemos ver en las respuestas de la encuesta, tenemos intervalos numéricos, así que cogeremos el valor medio de los extremos para facilitar el análisis. Después de estudiar el orden de los factores de algunas variables del csv, hemos visto que muchos quedan en el orden siguiente.
+
+```{r}
+c1 = c("4.5", "5.5", "6.5", "7.5", "8.5", "9.5", "3.5")
+c2 = c("4.5", "5.5", "6.5", "7.5", "8.5", "9.5", "3.5")
+c3 = c("1.5", "2.5", "3.5", "4.5", "5.5", "6.5", "7.5", "8.5", "9.5")
+```
+
+Después de nombrar los factores, los reorganizaremos para que estén ordenados de manera intuitiva.
+
+```{r}
+colnames(datos)[1] = "Edad"
+
+colnames(datos)[2] = "Genero"
+datos$Genero = as.factor(datos$Genero)
+levels(datos$Genero) = c("Fluido", "Hombre","Mujer","No binario")
+
+colnames(datos)[3] = "Colegio"
+datos$Colegio = as.factor(datos$Colegio)
+
+datos$Facultad = as.factor(datos$Facultad)
+
+colnames(datos)[5] = "Carrera_EE"
+datos$Carrera_EE = as.factor(datos$Carrera_EE)
+
+colnames(datos)[6] = "Carrera_C"
+datos$Carrera_C = as.factor(datos$Carrera_C)
+
+colnames(datos)[7] = "Carrera_E"
+datos$Carrera_E = as.factor(datos$Carrera_E)
+
+colnames(datos)[8] = "Carrera_FL"
+datos$Carrera_FL = as.factor(datos$Carrera_FL)
+
+colnames(datos)[9] = "Carrera_I"
+datos$Carrera_I = as.factor(datos$Carrera_I)
+
+colnames(datos)[10] = "Año_carrera"
+datos$Año_carrera = as.factor(datos$Año_carrera)
+
+colnames(datos)[11] = "Rendimiento_general"
+datos$Rendimiento_general = as.factor(datos$Rendimiento_general)
+levels(datos$Rendimiento_general) = c1
+datos$Rendimiento_general = factor(datos$Rendimiento_general, levels = sort(levels(datos$Rendimiento_general)))
+
+colnames(datos)[12] = "Rendimiento_ultimo"
+datos$Rendimiento_ultimo = as.factor(datos$Rendimiento_ultimo)
+levels(datos$Rendimiento_ultimo) = c1
+datos$Rendimiento_ultimo = factor(datos$Rendimiento_ultimo, levels = sort(levels(datos$Rendimiento_ultimo)))
+
+colnames(datos)[13] = "Dormir_examenes"
+datos$Dormir_examenes = as.factor(datos$Dormir_examenes)
+levels(datos$Dormir_examenes) = c2
+datos$Dormir_examenes = factor(datos$Dormir_examenes, levels = sort(levels(datos$Dormir_examenes)))
+
+colnames(datos)[14] = "Dormir_general"
+datos$Dormir_general = as.factor(datos$Dormir_general)
+levels(datos$Dormir_general) = c2
+datos$Dormir_general = factor(datos$Dormir_general, levels = sort(levels(datos$Dormir_general)))
+
+colnames(datos)[15] = "Ocio_examenes"
+datos$Ocio_examenes = as.factor(datos$Ocio_examenes)
+levels(datos$Ocio_examenes) = c3
+datos$Ocio_examenes = factor(datos$Ocio_examenes, levels = sort(levels(datos$Ocio_examenes)))
+
+colnames(datos)[16] = "Ocio_general"
+datos$Ocio_general = as.factor(datos$Ocio_general)
+levels(datos$Ocio_general) = c3
+datos$Ocio_general = factor(datos$Ocio_general, levels = sort(levels(datos$Ocio_general)))
+
+colnames(datos)[17] = "Estudio_general"
+datos$Estudio_general = as.factor(datos$Estudio_general)
+levels(datos$Estudio_general) = c3
+datos$Estudio_general = factor(datos$Estudio_general, levels = sort(levels(datos$Estudio_general)))
+
+colnames(datos)[18] = "Estudio_examenes"
+datos$Estudio_examenes = as.factor(datos$Estudio_examenes)
+levels(datos$Estudio_examenes) = c3
+datos$Estudio_examenes = factor(datos$Estudio_examenes, levels = sort(levels(datos$Estudio_examenes)))
+
+colnames(datos)[19] = "Alimentacion"
+
+colnames(datos)[20] = "Vida_social"
+
+colnames(datos)[21] = "Situacion_domestica"
+datos$Situacion_domestica = as.factor(datos$Situacion_domestica)
+levels(datos$Situacion_domestica) = c("padres", "piso", "residencia", "solo")
+
+colnames(datos)[22] = "Situacion_laboral"
+#Hay que tratar más tarde esta variable ya que es de multirespuesta
+
+colnames(datos)[23] = "Estres"
+datos$Estres = as.factor(datos$Estres)
+
+colnames(datos)[24] = "Medidas_estres"
+datos$Medidas_estres = as.factor(datos$Medidas_estres)
+
+colnames(datos)[25] = "Fiesta"
+datos$Fiesta = as.factor(datos$Fiesta)
+levels(datos$Fiesta) = c("(casi) nunca", "+2", "1-2") 
+datos$Fiesta = factor(datos$Fiesta, levels = levels(datos$Fiesta)[c(1,3,2)])
+
+colnames(datos)[26] = "Deporte"
+datos$Deporte = as.factor(datos$Deporte)
+levels(datos$Deporte) = c("1-2", "3-4", "+5", "(casi) nunca") 
+datos$Deporte = factor(datos$Deporte, levels = levels(datos$Deporte)[c(4,1,2,3)])
+
+colnames(datos)[28] = "Pareja"
+datos$Pareja = as.factor(datos$Pareja)
+
+colnames(datos)[29] = "Tiempo_pareja_examenes"
+datos$Tiempo_pareja_examenes = as.factor(datos$Tiempo_pareja_examenes)
+levels(datos$Tiempo_pareja_examenes) = c("", "8<", "2-4", "4-6", "6-8", "<2", "distancia")
+datos$Tiempo_pareja_examenes = factor(datos$Tiempo_pareja_examenes, levels = levels(datos$Tiempo_pareja_examenes)[c(6,3,4,5,2,7,1)])
+
+colnames(datos)[30] = "Tiempo_pareja_general"
+datos$Tiempo_pareja_general = as.factor(datos$Tiempo_pareja_general)
+levels(datos$Tiempo_pareja_general) = c("", "8<", "2-4", "4-6", "6-8", "<2", "distancia")
+datos$Tiempo_pareja_general = factor(datos$Tiempo_pareja_general, levels = levels(datos$Tiempo_pareja_general)[c(6,3,4,5,2,7,1)])
+```
+
+Cambiamos hobbies a nominal ya que tiene demasiados niveles como para ser un factor.
+
+```{r}
+datos$Hobbies = as.character(datos$Hobbies) 
+```
+
+El resto de variables consideramos que son del tipo correcto, ya que los factores nos permitirán clasificar las respuestas en diferentes niveles y las variables enteras nos ayudarán a comparar numéricamente.
+
+```{r}
+str(datos)
+head(datos)
+```
+
+***
+
+
+# Análisis descriptivo
+
+Antes de pasar a analizar los datos y a realizar tests (para ver si se cumplen nuestras hipótesis iniciales) vamos a presentar los datos recogidos.  
+
+Realizamos un muestreo estratificado por facultades con afijación proporcional. Veamos si hemos conseguido los porcentajes deseados:
+
+```{r}
+prop.table(table(datos$Facultad))
+```
+
+Podemos ver que efectivamente se cumplen nuestros objetivos, por tanto, no tenemos que hacer ninguna modificación. Podremos apreciarlo mejor gráficamente como vemos a continuación: \newline
+
+```{r}
+EPS = length(which(datos$Facultad == "EPS"))
+E = length(which(datos$Facultad == "Educación"))
+EyE = length(which(datos$Facultad == "Economía y Empresa"))
+Ciencias = length(which(datos$Facultad == "Ciencias"))
+FyL = length(which(datos$Facultad == "Filosofía y Letras"))
+
+
+EPSp = round(length(which(datos$Facultad == "EPS"))/length(datos$Facultad)*100,2)
+Ep = round(length(which(datos$Facultad == "Educación"))/length(datos$Facultad)*100,2)
+EyEp = round(length(which(datos$Facultad == "Economía y Empresa"))/length(datos$Facultad)*100,2)
+Cienciasp = round(length(which(datos$Facultad == "Ciencias"))/length(datos$Facultad)*100,2)
+FyLp = round(length(which(datos$Facultad == "Filosofía y Letras"))/length(datos$Facultad)*100,2)
+
+slices = c(EPS, E, EyE, Ciencias, FyL)
+slice_lab = paste(c(EPSp, Ep, EyEp, Cienciasp, FyLp), "%", sep = "")
+
+pie(slices,main = "Porcentaje de personas por facultad",
+col= colorRampPalette(c('lightblue', "yellow"))(5), labels = slice_lab) 
+legend("topright",c("EPS","Educación","Economía y Empresa","Ciencias","Filosofía y Letras"),cex = 0.7, fill = 
+colorRampPalette(c('lightblue', "yellow"))(5))
+```
+
+***
+
+Para poder comprender mejor nuestros datos vamos a tratar de representarlos de una manera más visual con la ayuda de diagramas.
+
+```{r}
+library(tidyverse)
+#ggplot(data = datos) + 
+ # geom_bar(mapping = aes(x = Genero, fill = Estres), position = "dodge")
+
+tabla1 = prop.table(table(datos$Estres,datos$Genero), margin = 2)
+barplot(tabla1, beside = TRUE, col = c("red","green","blue"), ylim = c(0,1),names.arg=c("Fluido","Hombre","Mujer","No Binario"))
+legend(x = "topright", legend = c("No", "Si","Tal vez"), fill = c("red", "green","blue"))
+```
+
+Hacemos una primera diferenciación por géneros y el nivel de estrés de cada grupo. Tenemos la representación respecto a los porcentajes de cada génenro. Una primera observación es que el nivel de estrés de las mujeres es mucho mayor que el de los hombres. Además, vemos que en "Fluido" toda la población no está estresada. Esto se debe a que había una única persona en este grupo. En el caso de "No binario" vuelve a pasar más de lo mismo ya que tenemos 2 personas en el grupo.
+
+```{r}
+prop.table(table(datos$Genero))
+```
+
+***
+
+```{r}
+barplot(table(datos$Edad), col = colorRampPalette(c('lightblue', 'red'))(16), 
+main = "Numero de personas por edades", las = 2, cex.names = 0.65)
+```
+
+Con este gráfico nos podemos hacer una mejor idea de las edades de los entrevistados. Vemos que a partir de los 24 ya empieza el número muestras a ser escaso.
+
+***
+
+```{r}
+#ggplot(data = datos) + 
+  #geom_bar(mapping = aes(x = Facultad, fill = Estres), position = "dodge")
+tabla2 = prop.table(table(datos$Estres,datos$Facultad), margin = 2)
+barplot(tabla2, beside = TRUE, col = c("red","green","blue"), ylim = c(0,0.80),names.arg=c("Ciencias","EyE","Educación","EPS","Fil y Let"))
+legend(x = "topright", legend = c("No", "Si","Tal vez"), fill = c("red", "green","blue"))
+```
+
+Aquí, la representación del nivel de estrés en proporción a la magnitud de cada facultad. Vemos que en la facultad de Ciencias es donde tenemos el mayor número de personas con estrés (considerando solo los "sí" como estrés). Además, la facultad con mayor número de personas no estresadas es la EPS siguiéndole muy de cerca la facultad de Economía y Empresa y la de Filosofía y Letras.
+
+***
+
+```{r}
+S = length(which(datos$Estres == "Sí"))
+N = length(which(datos$Estres == "No"))
+TV = length(which(datos$Estres == "Tal vez"))
+
+Sp = round(length(which(datos$Estres == "Sí"))/length(datos$Estres)*100,2)
+Np = round(length(which(datos$Estres == "No"))/length(datos$Estres)*100,2)
+TVp = round(length(which(datos$Estres == "Tal vez"))/length(datos$Estres)*100,2)
+
+slices = c(S,N,TV)
+slice_lab = paste(c(Sp,Np,TVp), "%", sep = "")
+
+pie(slices,main = "Porcentaje de personas con estrés",
+col= colorRampPalette(c('red', "yellow"))(3), labels = slice_lab) 
+legend("topright",c("Sí","No","TV"),cex = 0.7, fill = 
+colorRampPalette(c('red', "yellow"))(3))
+```
+
+Por último, como no podía ser de otra forma, tenemos representadas las tres posibles opciones de la pregunta sobre el estrés junto con el porcentaje de participantes que han optado por cada respuesta. Vemos que cerca de un 50% total de nuestros encuestados asegura estar estresado. Por otra parte, el porcentaje de indecisos (los que respondieron "Tal vez") se asemeja mucho al de gente que asegura no sufrir estrés.
+
+***
+
+# Análisis inferencial
+
+Llegamos al punto que realmente nos concierne: cómo responder las preguntas de nuestros objetivos. Queremos ver qué variables tienen una correlación con el estrés y ver si existe algún tipo de perfil de estudiante según el nivel de estrés.
+
+Para ello debemos definir lo que nosotros tomaremos como "nivel de estrés":
+
+$$\text{Nivel de estrés} = \frac{\text{Estudio} - \text{Ocio}}{\text{Dormir}}$$
+
+Tomamos esta definición propia como "nivel de estrés" ya que consideramos que el estrés de una persona aumenta mientras más estudia y se reduce según su ocio. Además, es inversamente proporcional a las horas de sueño. Es una definición que intentamos que sea lo más estándar posible. Al ser uno de nuestros objetivos comprobar la relación de este nivel de estrés con otras variables, como por ejemplo "situación laboral", no podemos añadir los datos de éstas a la definición. 
+
+Diferenciaremos, como hemos visto en la sección de las preguntas de la encuesta, si se trata del periodo de exámenes ("examenes_estres") o si es en general durante el curso ("nivel_estres").
+
+```{r}
+nivel_estres = (as.numeric(as.character(datos$Estudio_general))-as.numeric(as.character(datos$Ocio_general)))/as.numeric(as.character(datos$Dormir_general))
+
+examenes_estres = (as.numeric(as.character(datos$Estudio_examenes))-as.numeric(as.character(datos$Ocio_examenes)))/as.numeric(as.character(datos$Dormir_examenes))
+```
+
+Escalaremos los datos de 0 al 10 con tal de que sea más intuitivo. De esta froma, consideraremos niveles de estrés bajos aquellos que estén por de dabajo de 3, medios aquellos que fluctúen entre 3 y 7 y alto más de 7.
+
+```{r}
+library(scales)
+esc = c(0,10) 
+x = c(nivel_estres, examenes_estres)
+x = rescale(x, to = esc)
+nivel_estres = x[1:(length(x)/2)]
+examenes_estres = x[(length(x)/2+1): length(x)]
+```
+
+Definimos también la variable "aumento_estres" que será la diferencia entre el periodo de exámenes y el normal.
+
+```{r}
+aumento_estres = examenes_estres - nivel_estres
+```
+
+Creamos un nuevo dataset para tratar los datos al que llamaremos "datos1".
+
+```{r}
+datos1 = datos 
+datos1 = cbind(datos1, nivel_estres, examenes_estres, aumento_estres)
+```
+
+Los tests que deberíamos hacer para responder nuestras preguntas serán principalmente tests de medias ya que buscamos separar las poblaciones en dos grupos y comprobar si el estrés medio de una población es mayor que la otra. De esta forma podremos afirmar que esta variable guarda relación con el estrés.
+
+Las variables que tomaremos serán:
+
+### Rendimiento académico
+
+```{r}
+datos2 = datos1[which(datos1$aumento_estres >=0),]
+
+
+Nota=cut(as.numeric(as.character(datos2$Rendimiento_general)), breaks= c(0,7, 10),
+  labels=c("Suspenso", "Aprobado"))
+datos2 = cbind(datos2, Nota)
+```
+
+Aquí hemos dividido la población en "Suspenso" y "Aprobado", pero no como lo entendemos usualmente. El problema que teníamos es que si considerábamos suspendido como una nota inferior a 5, el número de gente que pertece a este grupo es muy pequeño. La solución que hemos tomado ha sido considrar la frontera en el 7. Puede parecer que justamente hemos topado con muy buenos estudiantes, pero lo cierto es que si pensamos en cómo hemos hecho las encuestas cobra más sentido. Puede ocurrir, por ejemplo, que los "malos estudiantes" no acudan a la UIB y, por consiguiente, no hayamos podido coincidir con ellos para encuestarlos.
+
+```{r}
+nrow(datos2[which(datos2$Nota == "Suspenso"),])
+nrow(datos2[which(datos2$Nota == "Aprobado"),])
+```
+
+Ahora sí, como hay un número suficientemente grande de muestras en las dos divisiones, podemos aplicar un t.test por el Teorema Central del Límite.
+
+Aquello que queremos ver es si la media del nivel de estrés de los aprobados $\mu_A$ es la de los suspendidos $\mu_S$. Para ello, realizamos primero el contraste:
+
+$$\left\{ \begin{array}{lcc}
+             H_0: &   \mu_S = \mu_A\\
+             \\ H_1: &  \mu_S \neq \mu_A \\
+             \end{array}
+   \right.$$
+
+
+```{r}
+t.test(datos2$nivel_estres[which(datos2$Nota == "Suspenso")], datos2$nivel_estres[which(datos2$Nota == "Aprobado")], alternative = "two.sided")
+```
+
+Ha quedado en zona de penumbra, así que realizamos el test por ambos lados para verificar si se cumple alguna de las dos condiciones. En el primero estamos mirando si $\mu_S < \mu_A$ y en el segundo lo contrario. Fíjemonos que el que más nos interesa es si se cumple que $\mu_S < \mu_A$.
+
+```{r}
+t.test(datos2$nivel_estres[which(datos2$Nota == "Suspenso")], datos2$nivel_estres[which(datos2$Nota == "Aprobado")], alternative = "less")
+t.test(datos2$nivel_estres[which(datos2$Nota == "Suspenso")], datos2$nivel_estres[which(datos2$Nota == "Aprobado")], alternative = "greater")
+```
+
+Al ser el p-valor < 0.05, vemos que se rechaza la hipótesis nula en el primer test. Por tanto, se considera como cierto aquello que suponíamos: la media de estrés de los suspendidos es menor que la de los aprobados.
+
+```{r}
+#wilcox.test(datos3$nivel_estres[which(datos3$Nota == "Suspenso")], datos3$nivel_estres[which(datos3$Nota == "Aprobado")], alternative = "two.sided", paired = F)
+
+hist(datos2$nivel_estres[which(datos2$Nota == "Suspenso")], main = "Histograma del nivel de estrés de los suspendidos", xlab = "Nivel de estrés general", ylab= "Frecuencia" )
+#hist(datos2$nivel_estres[which(datos2$Nota == "medio")])
+hist(datos2$nivel_estres[which(datos2$Nota == "Aprobado")], main = "Histograma del nivel de estrés de los aprobados", xlab = "Nivel de estrés general", ylab= "Frecuencia" )
+```
+
+Nos ayudamos de los histogramas para ver si nos recuerda a alguna distribución conocida. Podemos observar que se asemeja a una "t de Student". Como tenemos 145 muestras de suspendidos y 97 de aprobados, el grado de libertad que tendría nuestra distribución en caso de ser una "t de Student" sería de $145-1=144$ para los suspendidos y $97-1=96$ para los aprobados. Vemos qué ocurre si utilizamos un Q-Q-plot. 
+
+```{r}
+library(car)
+qqPlot(datos2$nivel_estres[which(datos2$Nota == "Suspenso")], distribution="t", df=144, id=FALSE)
+```
+
+Vemos cómo los primeros puntos salen de la región de confianza del 95% por debajo. Esto significa que los valores más pequeños de la muestra son mayores de lo que sería de esperar si la muestra viniera de la variable normal. Interpretamos este Q-Q-plot como evidencia de que estas longitudes no siguen una distribución normal.
+
+```{r}
+qqPlot(datos2$nivel_estres[which(datos2$Nota == "Aprobado")], distribution="t", df=96, id=FALSE)
+```
+
+Este caso se desvía aún más que el de los suspendidos. Es decir, sospechamos que tampoco sigue una normal.
+
+Comprobémoslo efectuando el tets de Shapiro. 
+
+```{r}
+shapiro.test(datos2$nivel_estres[which(datos2$Nota == "Suspenso")])
+shapiro.test(datos2$nivel_estres[which(datos2$Nota == "Aprobado")])
+```
+
+Los p-valores son muy bajos, así que podemos concluir que los datos no provienen de una normal. No obstante, no quita que no pudiéramos emplear el "t.test" por el hecho mencionado anteriormente de que tenemos un número de muestras sufucientemente grande.
+
+
+
+### Alimentación
+
+```{r}
+summary(datos1$Alimentacion)
+Alim=cut(datos1$Alimentacion, breaks= c(0,7, 10), labels=c("Mala", "Buena"))
+datos1 = cbind(datos1, Alim)
+
+```
+
+
+
+
+
+
+
+### Vida social
+
+```{r}
+summary(datos1$Vida_social)
+social=cut(datos1$Vida_social, breaks= c(0,7, 10), labels=c("Baja", "Alta"))
+datos1 = cbind(datos1, social)
+```
+
+
+### Situación doméstica y situación laboral
+
+En este apartado intentaremos ver si existe alguna relación entre la situación doméstica y la situación laboral.
+
+Recordemos que la variable "situación laboral" era una pregunta multiopción. Por ello la tratamos de la siguiente forma: 
+
+```{r}
+nueva_col = data.frame(trabajo = c(1:length(datos1[,1])))
+datos3 = cbind(datos1, nueva_col)
+datos3$trabajo[which(datos3$Situacion_laboral == "No tengo trabajo")] = "No trabajo"
+datos3$trabajo[which(datos3$Situacion_laboral == "Trabajo de manera esporádica" | datos3$Situacion_laboral == "Tengo trabajo estable" | datos3$Situacion_laboral == "Trabajo en verano" | datos3$Situacion_laboral == "Busco trabajo de manera activa" )] = "Trabajo"
+```
+
+Lo separaremos en dos sectores: aquellos con trabajo y los que no. Observemos que el número de muestrs en óptimo en los dos grupos.
+
+```{r}
+nrow(datos3[which(datos3$trabajo == "No trabajo"),])
+nrow(datos3[which(datos3$trabajo == "Trabajo"),])
+
+nueva_col_1 = data.frame(casa = c(1:length(datos1[,1])))
+```
+
+Separaremos también en dos sectores las respuestas de "situación doméstica" según vivan o no con los padres. Vemos que volvemos a tener una población "grande" en los dos grupos.
+
+```{r}
+datos4 = cbind(datos3, nueva_col_1)
+datos4$casa[which(datos4$Situacion_domestica == "padres")] = "Papis"
+datos4$casa[which(datos4$Situacion_domestica == "solo" | datos4$Situacion_domestica == "residencia" | datos4$Situacion_domestica == "piso")] = "No Papis"
+
+nrow(datos4[which(datos4$casa == "Papis"),])
+nrow(datos4[which(datos4$casa == "No Papis"),])
+```
+
+Organizamos todo en una misma tabla como sigue:
+
+```{r}
+table.ind = table(datos4$trabajo, datos4$casa)
+table.ind
+```
+
+A continuación, queremos responder a la pregunta de si existe relacióm entre la situación laboral de un estudiante y el hecho de que viva o no con sus padres ya que al tener una fuente de ingresos pensamos que es más probable que esté independizado. Para proceder a ello utilizaremos el "chisq.test". Notemos que tenemos suficientes muestras de cada grupo como para poder aplicarlo. Tenemos que $H_0$ presupone que la situación laboral y la situación doméstica son independientes. Por tanto, $H_1$ adoptará la hipótesis de que son dependientes.
+
+```{r}
+chisq.test(table.ind)
+```
+
+En este caso, el p-valor que obtenemos es muy elevado. Es decir, no podemos descartar que sean independientes. Esto se puede deber a que muchos estudiantes, aunque no tengan trabajo, se tienen que independizar de todas formas porque tienen que estudiar en un lugar que está lejos de su domicilio habitual.
+
+El siguiente paso que procedemos a seguir es juntar los datos de la tabla por parejas.
+
+```{r}
+nueva_col_2 = data.frame(combinado = c(1:length(datos1[,1])))
+datos5 = cbind(datos4, nueva_col_2)
+datos5$combinado[which(datos5$trabajo == "No trabajo" & datos5$casa == "Papis")] = "No tra Pa"
+datos5$combinado[which(datos5$trabajo == "No trabajo" & datos5$casa == "No Papis")] = "No tra No Pa"
+datos5$combinado[which(datos5$trabajo == "Trabajo" & datos5$casa == "Papis")] = "Tra Pa"
+datos5$combinado[which(datos5$trabajo == "Trabajo" & datos5$casa == "No Papis")] = "Tra No Pa"
+```
+
+Estudiemos la normalidad de los datos anteriores. Para ello, utilizaremos esta vez el test omnibus de D’Agostino-Pearson. Éste es un test que no es sensible a las repeticiones al contrario de los otros tests de normalidad, hecho que nos vendrá bien porque puede haber datos repetidos en nuestras muestras.
+
+```{r}
+datos5.notrapa = datos5$nivel_estres[which(datos5$combinado == "No tra Pa")]
+length(datos5.notrapa)
+datos5.notranopa = datos5$nivel_estres[which(datos5$combinado == "No tra No Pa")]
+length(datos5.notranopa)
+datos5.tranopa = datos5$nivel_estres[which(datos5$combinado == "Tra No Pa")]
+length(datos5.tranopa)
+datos5.trapa = datos5$nivel_estres[which(datos5$combinado == "Tra Pa")]
+length(datos5.trapa)
+```
+
+Observemos que el número de muestras es alto en todos los grupos excepto en el de los "no trabajadores y no viven con sus padres". De todas formas, no hay inconveniente en aplicar el test a una muestra reducida, aunque cabe remarcar un pequeño detalle y es que es muy difícil rechazar la normalidad de una muestra muy pequeña. Comentado esto, procedamos:
+
+```{r}
+library(fBasics)
+dagoTest(datos5.notranopa)
+dagoTest(datos5.notrapa)
+dagoTest(datos5.tranopa)
+dagoTest(datos5.trapa)
+```
+
+El p-valor relevante es el del “Omnibus test”. En este caso sospechamos que todos los datos siguen una normal a excepción del último que tiene un p-valor muy pequeño y, por ende, nos permite rechazar la hipótesis de que la muestra provenga de una población normal. Por tanto, recurriremos al test no paramétrico de Kruskal-Wallis.
+
+```{r}
+kruskal.test(nivel_estres~combinado, data=datos5)
+```
+
+El p-valor es 0.1668, lo que indica que, efectivamente, no hay evidencia de que las medias sean diferentes. Es decir, no hay ninguno de los 4 grupos que destaque sobre los otros en cuanto nivel de estrés se refiere.
+
+Por último, estimaremos los parámetros de las distribuciones normales de los datos anteriores. Únicamente lo aplicaremos a aquellos que el test nos dice que no podemos descartar que sean normales. Utilizaremos el método de máxima verosimilitud a partir de una muestra y obtendremos también el error típico de dicha estimación usando la función "fitdistr" del paquete MASS. 
+
+```{r}
+library(MASS)
+fitdistr(datos5.notranopa, densfun = "normal")
+fitdistr(datos5.notrapa, densfun = "normal")
+fitdistr(datos5.tranopa, densfun = "normal")
+```
+Vemos que las medias obtenidas son parecidas (como ya nos había indicado el test de Kruskal-Wallis). El nivel de estrés que podemos ver en este tipo de separación es medio (alrederor de 5.5). En cuanto a la desviación típica, obtenemos que los datos que más fluctúan (hay más variedad de nivel de estrés numéricamente hablando) son los de la gente que no trabaja y no vive con sus padres. 
+
+
+### Número de Hobbies
+
+Vemos si el número de hobbies que tiene una persona puede afectar a su nivel de estrés. Para ello, consideramos "pocos" hobbies si la persona tiene entre ninguno y dos, "normal" si la persona tiene entre dos y cuatro y "bastantes" más de cuatro. Cabe comentar que esto es bajo la lista de hobbies que hemos escogido nosotros, es decir, no necesariamente la persona tendrá este número de hobbies como total en la vida real.
+
+```{r}
+library(tidyverse)
+num_hob = str_count(datos1$Hobbies, ",")+1
+datos1 = cbind(datos1, num_hob)
+#summary(datos1$num_hob)
+NH = cut(datos1$num_hob, breaks = c(0,2,4,10), labels = c("Pocos", "Normal", "Bastantes"))
+```
+
+Aplicaremos ANOVA de un factor. Para ello, vemos si sigue una normal.
+
+```{r}
+shapiro.test(nivel_estres)
+```
+
+Nos ayudamos del test de Shapiro para ver que no sigue una normal, así que aplicaremos el test no paramétrico "kruskal.test".
+
+```{r}
+kruskal.test(nivel_estres ~ NH, data = datos1)
+```
+Como el p-valor es grande, no podemos rechazar que los que tienen un número grande, normal o pequeño de hobbies tengan un nivel de estrés diferente. O, lo que es lo mismo de cara a nuestro objetivo, el número de hobbies no es un indicador que nos haga pensar que afectará al nivel de estrés.
+
+Para verlo dibujamos el siguiente gráfico: 
+
+```{r}
+boxplot(nivel_estres ~ NH, data = datos1)
+```
+
+
+### Fiesta y Deporte
+
+Nos adentramos a continuación en los mundos de la fiesta y el deporte.
+
+```{r}
+datos6 = datos5
+table.fiest_deporte_1 = table(datos6$Fiesta, datos6$Deporte)
+table.fiest_deporte_1
+prop.table(table.fiest_deporte_1)
+```
+
+Volvemos a preguntarnos si existe alguna relación entre éstos. Recurrimos de nuevo al "chisq.test" y vemos el resultado a continuación. 
+
+```{r}
+chisq.test(table.fiest_deporte_1)
+```
+
+Obtenemos un p-valor de 0.01328 lo cual nos indica que son dependientes. Es decir, vemos que existe una relación en nuestra población entre la gente que hace o no deporte y va o no de fiesta. 
+
+Realizaremos dos ANOVAs de un factor por separado, pero utilizando el test paramétrico de Kruskal-Wallis.
+
+```{r}
+kruskal.test(nivel_estres~Fiesta, data = datos6)
+kruskal.test(nivel_estres~Deporte, data = datos6)
+```
+
+Vemos que en los dos aceptamos que no importa el tiempo de deporte que hagas o las veces que salgas de fiesta en relación al estrés ya que asumimos que la media de estrés es la similar en todos los casos.
+
+
+### Pareja y horas con la pareja
+
+Dentro de la gente que entrevistamos que contestó que tenía pareja vemos si podemos sacar más información.
+
+```{r}
+datos7 = datos1[which(datos1$Pareja == "Si"),]
+estres_pareja = datos7$nivel_estres
+summary(estres_pareja)
+datos8 = datos1[which(datos1$Pareja == "No"),]
+estres_no_pareja = datos8$nivel_estres
+summary(estres_no_pareja)
+
+kruskal.test(nivel_estres~Pareja, data = datos1)
+```
+
+Como podemos observar el p-valor es pequeño, por lo que no podemos asumir que los que tienen pareja y los que no tienen un nivel de estrés similar.
+
+Realizamos dos t.test (uno con varianzas iguales, y otro con diferentes) para ver cual es el que tiene más estrés.
+
+```{r}
+t.test(estres_pareja, estres_no_pareja, alternative = "greater", var.equal = FALSE)
+t.test(estres_pareja, estres_no_pareja, alternative = "greater", var.equal = TRUE)
+```
+Como en los dos nos da un p-valor muy pequeño, podemos asumir que la hipótesis nula no es verdadera, es decir, que los que tienen pareja tienen un nivel medio de estrés mayor.
+
+***
+
+Una vez hemos estudiado las variables que pensamos que nos pueden ayudar para responder nuestros objetivos pasamos a separar en 5 datasets, como en los casos anteriores, en función de la facultad y de la carrera. Después vamos a hacer un test de homogeneidad en función de las respuestas a la pregunta de si creen que tienen estrés o no.
+
+
+```{r}
+datos9 = datos1[which(datos1$Facultad == "EPS"),]
+nrow(datos9)
+datos9estres = table(datos9$Carrera_I,datos9$Estres)
+cbind(datos9estres, TOTAL = table(datos9$Carrera_I))[-1,] 
+#el -1 es porque salía una fila con zeros
+```
+
+Vemos que si lo estudiamos por carreras, el número de muestras no es muy alto. Como un pequeño detalle, nos fijamos en las tres carreras de las que tenemos más muestras: Edificación, Ingeniería Informática y Matemáticas. Vemos que de entre estas tres, la carrera que tiene mayor número de personas estresadas es matemáticas con un total de 11.
+
+```{r}
+datos10 = datos1[which(datos1$Facultad == "Educación"),]
+nrow(datos10)
+datos10estres = table(datos10$Carrera_E,datos10$Estres)
+cbind(datos10estres, TOTAL = table(datos10$Carrera_E))[-1,]
+```
+
+En la facultad de Educación es donde tenemos recogido el mayor número de muestras y estas han sido las frecuencias. Procedemos de la misma forma con las demás facultades.
+
+```{r}
+datos11 = datos1[which(datos1$Facultad == "Economía y Empresa"),]
+nrow(datos11)
+datos11estres = table(datos11$Carrera_EE,datos11$Estres)
+cbind(datos11estres, TOTAL = table(datos11$Carrera_EE))[-1,]
+
+datos12 = datos1[which(datos1$Facultad == "Ciencias"),]
+nrow(datos12)
+datos12estres = table(datos12$Carrera_C,datos12$Estres)
+cbind(datos12estres, TOTAL = table(datos12$Carrera_C))[-1,]
+
+datos13 = datos1[which(datos1$Facultad == "Filosofía y Letras"),]
+nrow(datos13)
+datos13estres = table(datos13$Carrera_FL,datos13$Estres)
+cbind(datos13estres, TOTAL = table(datos13$Carrera_FL))[-1,]
+```
+
+Como hemos mencionado, como el número de muestras por carrera es muy reducido, el obtetivo será estudiar nuestros datos por facultades (donde tenemos un mayor número de muestras de cada una).
+
+```{r}
+library(fBasics)
+estres.eps = datos1$nivel_estres[which(datos1$Facultad == "EPS")]
+estres.educacion =  datos1$nivel_estres[which(datos1$Facultad == "Educación")]
+estres.economia =  datos1$nivel_estres[which(datos1$Facultad == "Economía y Empresa")]
+estres.ciencias =  datos1$nivel_estres[which(datos1$Facultad == "Ciencias")]
+estres.filosofia =  datos1$nivel_estres[which(datos1$Facultad == "Filosofía y Letras")]
+length(estres.eps)
+length(estres.educacion)
+length(estres.economia)
+length(estres.ciencias)
+length(estres.filosofia) #todas grandes (mayores que 20, puedo hacer dago test)
+dagoTest(estres.eps)
+dagoTest(estres.educacion)
+dagoTest(estres.economia)
+dagoTest(estres.ciencias)
+dagoTest(estres.filosofia)
+```
+
+eps, economia y filosofia no siguen una normal (pvalor pequeño, no puedo hacer un ANOVA), hago el kruskal wallis
+
+
+```{r}
+kruskal.test(nivel_estres~Facultad, data = datos1) 
+```
+
+justo por encima de la zona de penumbra, demasiado cerca. Voy a hacer un test para ver que pares no tienen la misma media de nivel de estres.
+
+```{r}
+pairwise.wilcox.test(datos1$nivel_estres,datos1$Facultad,p.adjust.method="holm")
+boxplot(estres.eps,estres.educacion, estres.economia, estres.ciencias, estres.filosofia) #vemos que tiene sentido
+```
+
+Podemos observar que la facultad de Filosofia y letras es la diferente, ya que las otras parecen tener la misma media de nivel de estrés. En especial parece haber diferencias con la facultad de la EPS, como cae en la zona de penumbra, vamos a realizar un test para ver que ocurre con sus medias.
+
+Recordemos que el nivel de estres en la EPS no sigue una distribucion normal, por tanto no podemos aplicar el t.test(), sin embargo como las muestras son relativamente grandes (54 y 43) podemos aplicarlo. Haremos un boxplot para determinar cual es la hipotesis alternativa adecuada.
+
+```{r}
+boxplot(estres.eps, estres.filosofia) #parece que el viel de estres de filosofia es menor.
+var.test(estres.eps,estres.filosofia) #pvalor grande rechazamos la hipotesis nula -> tienen distinta varianza
+t.test(estres.eps,estres.filosofia,alternative = "greater", var.equal = F)
+```
+
+Parece que no hay evidencias para descartar que el la media del nivel de estrés sea diferente en la EPS que en la facultad de Filosofia. Por tanto, concluimos que el nivel de estrés es relativamente parecido en todas las facultades.
+
+
+***
+# Conclusiones
+
+Para concluir, realizaremos un t.test de una variable al nivel de estres para saber si la media esta por encima de 5, que es un nivel considerable de estres. Podemos utilizar un t.test ya que la muestra es grande. Todo con un nivel de confianza del 95%.
+
+```{r}
+t.test(datos1$nivel_estres, mu = 5, alternative = "less")
+```
+
+Como podemos observar, la media de estres es menor a 5, ya que el p-valor es muy grande.
+
+
+
+
+
+
+
+
